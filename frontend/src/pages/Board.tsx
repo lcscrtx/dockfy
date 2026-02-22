@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, type DragEvent, type KeyboardEvent } from 
 import { useNavigate } from 'react-router-dom';
 import { useDocumentStore, type SavedDocument } from '../store/documentStore';
 import { FileText, Plus, GripVertical, Loader2, X, CheckCircle2 } from 'lucide-react';
+import { TemplateSelectorModal } from '../components/TemplateSelectorModal';
 
 const COLUMNS = [
     { id: 'rascunho', title: 'Rascunho', color: 'bg-slate-400', lightBg: 'bg-slate-50', border: 'border-slate-200' },
@@ -12,25 +13,37 @@ const COLUMNS = [
 
 type ColumnId = (typeof COLUMNS)[number]['id'];
 
-function KanbanCard({ doc, onDragStart }: { doc: SavedDocument; onDragStart: (e: DragEvent, id: string) => void }) {
+function KanbanCard({ doc, onDragStart, onTaskClick }: {
+    doc: SavedDocument;
+    onDragStart: (e: DragEvent, id: string) => void;
+    onTaskClick: (doc: SavedDocument) => void;
+}) {
     const navigate = useNavigate();
     const isTask = doc.schema_id === 'quick_task';
 
     const typeLabel = doc.type || 'Documento';
     const dateStr = new Date(doc.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 
+    const handleClick = () => {
+        if (isTask) {
+            onTaskClick(doc);
+        } else {
+            navigate(`/document/${doc.id}`);
+        }
+    };
+
     return (
         <div
             draggable
             onDragStart={(e) => onDragStart(e, doc.id)}
-            onClick={() => !isTask && navigate(`/document/${doc.id}`)}
+            onClick={handleClick}
             className={`bg-white rounded-xl border border-slate-200 p-4 cursor-grab active:cursor-grabbing hover:border-slate-300 hover:shadow-md transition-all group select-none ${isTask ? 'border-l-4 border-l-amber-400' : ''}`}
         >
             <div className="flex items-start justify-between mb-2">
                 <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">{doc.id}</span>
                 <GripVertical className="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-            <h4 className={`text-sm font-semibold text-slate-900 mb-2 line-clamp-2 transition-colors ${isTask ? '' : 'group-hover:text-blue-600'}`}>
+            <h4 className={`text-sm font-semibold text-slate-900 mb-2 line-clamp-2 transition-colors ${isTask ? 'group-hover:text-amber-600' : 'group-hover:text-blue-600'}`}>
                 {doc.title}
             </h4>
             <div className="flex items-center gap-2 flex-wrap">
@@ -46,7 +59,7 @@ function KanbanCard({ doc, onDragStart }: { doc: SavedDocument; onDragStart: (e:
             <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
                 <span className="text-[11px] text-slate-400">{dateStr}</span>
                 {isTask && (
-                    <span className="text-[10px] text-amber-600 font-medium bg-amber-50 px-1.5 py-0.5 rounded">A fazer</span>
+                    <span className="text-[10px] text-amber-600 font-medium bg-amber-50 px-1.5 py-0.5 rounded">Clique para converter →</span>
                 )}
             </div>
         </div>
@@ -123,6 +136,7 @@ export function Board() {
     const { documents, loading, fetchDocuments, updateDocumentStatus } = useDocumentStore();
     const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
     const [addingInColumn, setAddingInColumn] = useState<string | null>(null);
+    const [selectedTask, setSelectedTask] = useState<SavedDocument | null>(null);
 
     useEffect(() => {
         fetchDocuments();
@@ -221,11 +235,11 @@ export function Board() {
                                                     key={doc.id}
                                                     doc={doc}
                                                     onDragStart={handleDragStart}
+                                                    onTaskClick={setSelectedTask}
                                                 />
                                             ))
                                         )}
 
-                                        {/* Inline quick-add form */}
                                         {isAdding && (
                                             <QuickAddForm
                                                 columnId={col.id}
@@ -253,6 +267,15 @@ export function Board() {
                     </div>
                 )}
             </div>
+
+            {/* Template Selector Modal */}
+            {selectedTask && (
+                <TemplateSelectorModal
+                    taskTitle={selectedTask.title}
+                    taskId={selectedTask.id}
+                    onClose={() => setSelectedTask(null)}
+                />
+            )}
         </div>
     );
 }

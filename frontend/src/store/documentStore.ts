@@ -21,6 +21,7 @@ interface DocumentStoreState {
     addDocument: (doc: Omit<SavedDocument, 'created_at' | 'user_id'>) => Promise<void>;
     addQuickTask: (title: string, columnId: SavedDocument['status']) => Promise<void>;
     updateDocumentStatus: (id: string, status: SavedDocument['status']) => Promise<void>;
+    deleteDocument: (id: string) => Promise<void>;
     getDocumentById: (id: string) => SavedDocument | undefined;
 }
 
@@ -106,6 +107,21 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
             }));
         } else {
             console.error('Error updating status:', error.message);
+        }
+    },
+
+    deleteDocument: async (id) => {
+        const { error } = await supabase
+            .from('documents')
+            .delete()
+            .eq('id', id);
+
+        if (!error) {
+            set((state) => ({
+                documents: state.documents.filter((d) => d.id !== id),
+            }));
+        } else {
+            console.error('Error deleting document:', error.message);
         }
     },
 
