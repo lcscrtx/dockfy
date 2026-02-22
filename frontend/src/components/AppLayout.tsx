@@ -5,6 +5,7 @@ import {
     LayoutDashboard,
     Kanban,
     FolderOpen,
+    UserCircle2,
     LogOut,
     Plus,
     ChevronLeft,
@@ -16,6 +17,7 @@ const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/board', icon: Kanban, label: 'Board' },
     { to: '/templates', icon: FolderOpen, label: 'Templates' },
+    { to: '/pessoas', icon: UserCircle2, label: 'Pessoas' },
 ];
 
 export function AppLayout({ children }: { children: ReactNode }) {

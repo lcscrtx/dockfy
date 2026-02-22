@@ -4,6 +4,7 @@ import { Templates } from "./pages/Templates";
 import { DocumentDetails } from "./pages/DocumentDetails";
 import { Dashboard } from "./pages/Dashboard";
 import { Board } from "./pages/Board";
+import { Personas } from "./pages/Personas";
 import { Login } from "./pages/Login";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { AppLayout } from "./components/AppLayout";
@@ -49,6 +50,7 @@ function AppRoutes() {
       <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/board" element={<ProtectedRoute><Board /></ProtectedRoute>} />
       <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
+      <Route path="/pessoas" element={<ProtectedRoute><Personas /></ProtectedRoute>} />
       <Route path="/wizard/:templateId" element={<ProtectedRoute><Wizard /></ProtectedRoute>} />
       <Route path="/wizard" element={<ProtectedRoute><Wizard /></ProtectedRoute>} />
       <Route path="/document/:id" element={<ProtectedRoute><DocumentDetails /></ProtectedRoute>} />

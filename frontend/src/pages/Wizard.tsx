@@ -10,6 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { buildZodSchema } from '../lib/zodBuilder';
 import { motion, AnimatePresence } from 'framer-motion';
 import { generateDocumentMarkdown } from '../lib/documentGenerator';
+import { PersonaSelector } from '../components/PersonaSelector';
 
 export function Wizard() {
     const { templateId } = useParams<{ templateId: string }>();
@@ -39,7 +40,7 @@ export function Wizard() {
         mode: 'onTouched'
     });
 
-    const { handleSubmit, reset: resetForm } = methods;
+    const { handleSubmit, reset: resetForm, setValue } = methods;
 
     useEffect(() => {
         resetForm(formData);
@@ -130,6 +131,17 @@ export function Wizard() {
 
                 <FormProvider {...methods}>
                     <form onSubmit={handleSubmit(onValidNext)} className="p-8">
+                        {/* Persona Selector — auto-fills person fields */}
+                        <PersonaSelector
+                            stepFields={currentStep.fields}
+                            onFillFields={(fieldValues) => {
+                                Object.entries(fieldValues).forEach(([key, value]) => {
+                                    setValue(key, value, { shouldValidate: true });
+                                    setFormData(key, value);
+                                });
+                            }}
+                        />
+
                         <div className="overflow-hidden">
                             <AnimatePresence mode="wait">
                                 <motion.div
