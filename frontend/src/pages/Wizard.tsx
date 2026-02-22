@@ -51,11 +51,12 @@ export function Wizard() {
         }
     }, []);
 
-    const onValidNext = async (data: Record<string, string>) => {
+    const onValidNext = async (raw: Record<string, unknown>) => {
+        const data = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, String(v ?? '')]));
         const currentData = { ...formData, ...data };
 
         Object.entries(data).forEach(([key, value]) => {
-            setFormData(key, value as string);
+            setFormData(key, value);
         });
 
         if (currentStepIndex === totalSteps - 1) {
