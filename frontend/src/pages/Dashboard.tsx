@@ -114,11 +114,11 @@ export function Dashboard() {
                     </div>
                 </div>
 
-                {/* Two-column layout for tables */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Stacked layout for tables */}
+                <div className="space-y-6">
 
-                    {/* Contracts Table — 2/3 width */}
-                    <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                    {/* Contracts Table — full width */}
+                    <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                         <div className="px-6 py-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="flex items-center gap-2">
                                 <FileSignature className="w-4 h-4 text-slate-400" />
@@ -196,7 +196,7 @@ export function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Tasks Panel — 1/3 width */}
+                    {/* Tasks Table — full width */}
                     <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                         <div className="px-5 py-5 border-b border-slate-200 flex items-center justify-between">
                             <div className="flex items-center gap-2">
