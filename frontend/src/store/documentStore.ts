@@ -19,6 +19,7 @@ interface DocumentStoreState {
     loading: boolean;
     fetchDocuments: () => Promise<void>;
     addDocument: (doc: Omit<SavedDocument, 'created_at' | 'user_id'>) => Promise<void>;
+    addQuickTask: (title: string, columnId: SavedDocument['status']) => Promise<void>;
     updateDocumentStatus: (id: string, status: SavedDocument['status']) => Promise<void>;
     getDocumentById: (id: string) => SavedDocument | undefined;
 }
@@ -62,6 +63,31 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
             await get().fetchDocuments();
         } else {
             console.error('Error saving document:', error.message);
+        }
+    },
+
+    addQuickTask: async (title, columnId) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        const taskId = `TASK-${Math.floor(1000 + Math.random() * 9000)}`;
+
+        const row = {
+            id: taskId,
+            schema_id: 'quick_task',
+            title,
+            type: 'Tarefa',
+            status: columnId,
+            value: '-',
+            markdown_content: '',
+            form_data: {},
+            user_id: user?.id,
+        };
+
+        const { error } = await supabase.from('documents').insert(row);
+
+        if (!error) {
+            await get().fetchDocuments();
+        } else {
+            console.error('Error creating quick task:', error.message);
         }
     },
 
