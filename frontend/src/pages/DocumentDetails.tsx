@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Download, FileCheck2, Printer, Edit3, ArrowLeft, Copy, Save, X, Loader2 } from 'lucide-react';
+import { Download, FileCheck2, Printer, Edit3, ArrowLeft, Copy, Save, X, Loader2, History, Clock, RefreshCcw } from 'lucide-react';
 import { useWizardStore } from '../store/wizardStore';
 import { useDocumentStore } from '../store/documentStore';
+import { useVersionStore } from '../store/versionStore';
 import { schemaRegistry } from '../config/schemas';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -12,6 +13,7 @@ export function DocumentDetails() {
     const navigate = useNavigate();
 
     const { documents, fetchDocuments, updateDocumentContent, duplicateDocument } = useDocumentStore();
+    const { versions, fetchVersions, loading: loadingVersions } = useVersionStore();
     const { generatedDocument: wizardDoc, schemaId: wizardSchemaId } = useWizardStore();
 
     const [isEditing, setIsEditing] = useState(false);
@@ -19,6 +21,7 @@ export function DocumentDetails() {
     const [isSaving, setIsSaving] = useState(false);
     const [isDuplicating, setIsDuplicating] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
 
     const pdfRef = useRef<HTMLDivElement>(null);
 
@@ -40,6 +43,19 @@ export function DocumentDetails() {
             setEditContent(markdownContent);
         }
     }, [markdownContent, isEditing]);
+
+    const handleOpenHistory = () => {
+        if (id) fetchVersions(id);
+        setShowHistoryModal(true);
+    };
+
+    const handleRestoreVersion = async (content: string) => {
+        if (!id) return;
+        setIsSaving(true);
+        await updateDocumentContent(id, content);
+        setIsSaving(false);
+        setShowHistoryModal(false);
+    };
 
     const handlePrint = () => {
         window.print();
@@ -210,8 +226,17 @@ export function DocumentDetails() {
                                 disabled={!markdownContent || !savedDoc || isDuplicating}
                                 className="w-full inline-flex justify-start items-center gap-3 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 disabled:opacity-50 transition-all"
                             >
-                                {isDuplicating ? <Loader2 className="w-4 h-4 animate-spin mr-0.5 text-slate-400" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                                {isDuplicating ? <Loader2 className="w-4 h-4 animate-spin mr-0.5 text-slate-400" /> : <Copy className="w-4 h-4 text-slate-400 group-hover:text-blue-600" />}
                                 Duplicar Contrato
+                            </button>
+
+                            <button
+                                onClick={handleOpenHistory}
+                                disabled={!savedDoc}
+                                className="w-full inline-flex justify-start items-center gap-3 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 disabled:opacity-50 transition-all group"
+                            >
+                                <History className="w-4 h-4 text-slate-400 group-hover:text-blue-600" />
+                                Histórico de Versões
                             </button>
                         </div>
                     </div>
@@ -226,6 +251,67 @@ export function DocumentDetails() {
                     </div>
                 </div>
             </main>
+
+            {/* History Modal */}
+            {showHistoryModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowHistoryModal(false)} />
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
+                        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                    <History className="w-5 h-5 text-slate-400" />
+                                    Histórico de Versões
+                                </h2>
+                                <p className="text-xs text-slate-500 mt-1">Veja ou restaure edições anteriores deste documento.</p>
+                            </div>
+                            <button
+                                onClick={() => setShowHistoryModal(false)}
+                                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="overflow-y-auto flex-1 p-6">
+                            {loadingVersions ? (
+                                <div className="flex justify-center items-center h-40">
+                                    <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                                </div>
+                            ) : versions.length === 0 ? (
+                                <div className="text-center text-slate-500 py-10">
+                                    <Clock className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                                    Nenhuma versão anterior encontrada.<br />
+                                    <span className="text-xs">Este documento nunca foi editado.</span>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {versions.map((v, index) => (
+                                        <div key={v.id} className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex items-center justify-between">
+                                            <div>
+                                                <p className="text-sm font-semibold text-slate-900">
+                                                    Versão anterior {versions.length - index}
+                                                </p>
+                                                <p className="text-xs text-slate-500 mt-0.5">
+                                                    Salva em: {new Date(v.created_at).toLocaleString('pt-BR')}
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => handleRestoreVersion(v.markdown_content)}
+                                                disabled={isSaving}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:text-blue-600 transition-colors"
+                                            >
+                                                {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCcw className="w-3.5 h-3.5" />}
+                                                Restaurar
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
