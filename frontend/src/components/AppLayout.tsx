@@ -127,7 +127,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
             {/* Main content */}
             <main
-                className={`flex-1 min-h-screen transition-all duration-300 ease-in-out ${collapsed ? 'ml-[68px]' : 'ml-[240px]'
+                className={`flex-1 h-screen overflow-auto transition-all duration-300 ease-in-out ${collapsed ? 'ml-[68px]' : 'ml-[240px]'
                     }`}
             >
                 {children}

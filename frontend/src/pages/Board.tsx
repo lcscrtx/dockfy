@@ -86,7 +86,7 @@ export function Board() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="h-screen flex flex-col overflow-hidden">
             {/* Top Bar */}
             <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
                 <div className="px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -105,13 +105,13 @@ export function Board() {
             </header>
 
             {/* Board */}
-            <div className="flex-1 p-6 lg:p-8 overflow-x-auto">
+            <div className="flex-1 p-6 lg:p-8 overflow-x-auto overflow-y-hidden">
                 {loading ? (
                     <div className="flex items-center justify-center h-64">
                         <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
                     </div>
                 ) : (
-                    <div className="flex gap-5 min-w-max h-[calc(100vh-10rem)]">
+                    <div className="flex gap-5 min-w-max h-full">
                         {COLUMNS.map((col) => {
                             const colDocs = getColumnDocs(col.id);
                             const isOver = dragOverColumn === col.id;
