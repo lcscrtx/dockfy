@@ -9,22 +9,38 @@ export function Dashboard() {
     const navigate = useNavigate();
     const { documents, loading, fetchDocuments, deleteDocument } = useDocumentStore();
     const [selectedTask, setSelectedTask] = useState<SavedDocument | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         fetchDocuments();
     }, [fetchDocuments]);
 
     // Split into contracts and tasks
-    const contracts = documents.filter((d) => d.schema_id !== 'quick_task');
-    const tasks = documents.filter((d) => d.schema_id === 'quick_task');
+    const allContracts = documents.filter((d) => d.schema_id !== 'quick_task');
+    const allTasks = documents.filter((d) => d.schema_id === 'quick_task');
 
-    // Derive KPIs from contracts only
-    const totalGerados = contracts.filter((d) => d.status === 'gerado').length;
-    const totalLocacoes = contracts.filter((d) => d.schema_id?.includes('locacao')).length;
-    const totalVendas = contracts.filter(
+    // Filter by search query
+    const lowerQuery = searchQuery.toLowerCase();
+    const contracts = allContracts.filter(d =>
+        !searchQuery ||
+        d.title.toLowerCase().includes(lowerQuery) ||
+        d.id.toLowerCase().includes(lowerQuery) ||
+        d.type?.toLowerCase().includes(lowerQuery) ||
+        d.value?.toLowerCase().includes(lowerQuery)
+    );
+
+    const tasks = allTasks.filter(t =>
+        !searchQuery ||
+        t.title.toLowerCase().includes(lowerQuery)
+    );
+
+    // Derive KPIs from ALL contracts (not just filtered)
+    const totalGerados = allContracts.filter((d) => d.status === 'gerado').length;
+    const totalLocacoes = allContracts.filter((d) => d.schema_id?.includes('locacao')).length;
+    const totalVendas = allContracts.filter(
         (d) => d.schema_id === 'compra_venda_imovel' || d.schema_id === 'autorizacao_venda' || d.schema_id === 'proposta_compra'
     ).length;
-    const totalTasks = tasks.length;
+    const totalTasks = allTasks.length;
 
     const handleDeleteTask = async (e: React.MouseEvent, taskId: string) => {
         e.stopPropagation();
@@ -131,7 +147,9 @@ export function Dashboard() {
                                 </div>
                                 <input
                                     type="text"
-                                    placeholder="Buscar contratos..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Buscar documentos e tarefas..."
                                     className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 sm:text-sm transition-colors"
                                 />
                             </div>

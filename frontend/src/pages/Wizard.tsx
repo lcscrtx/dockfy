@@ -11,6 +11,7 @@ import { buildZodSchema } from '../lib/zodBuilder';
 import { motion, AnimatePresence } from 'framer-motion';
 import { generateDocumentMarkdown } from '../lib/documentGenerator';
 import { PersonaSelector } from '../components/PersonaSelector';
+import { ImovelSelector } from '../components/ImovelSelector';
 
 export function Wizard() {
     const { templateId } = useParams<{ templateId: string }>();
@@ -133,6 +134,17 @@ export function Wizard() {
                     <form onSubmit={handleSubmit(onValidNext)} className="p-8">
                         {/* Persona Selector — auto-fills person fields */}
                         <PersonaSelector
+                            stepFields={currentStep.fields}
+                            onFillFields={(fieldValues) => {
+                                Object.entries(fieldValues).forEach(([key, value]) => {
+                                    setValue(key, value, { shouldValidate: true });
+                                    setFormData(key, value);
+                                });
+                            }}
+                        />
+
+                        {/* Imovel Selector — auto-fills property fields */}
+                        <ImovelSelector
                             stepFields={currentStep.fields}
                             onFillFields={(fieldValues) => {
                                 Object.entries(fieldValues).forEach(([key, value]) => {

@@ -21,6 +21,8 @@ interface DocumentStoreState {
     addDocument: (doc: Omit<SavedDocument, 'created_at' | 'user_id'>) => Promise<void>;
     addQuickTask: (title: string, columnId: SavedDocument['status']) => Promise<void>;
     updateDocumentStatus: (id: string, status: SavedDocument['status']) => Promise<void>;
+    updateDocumentContent: (id: string, content: string) => Promise<void>;
+    duplicateDocument: (id: string) => Promise<string | undefined>;
     deleteDocument: (id: string) => Promise<void>;
     getDocumentById: (id: string) => SavedDocument | undefined;
 }
@@ -107,6 +109,64 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
             }));
         } else {
             console.error('Error updating status:', error.message);
+        }
+    },
+
+    updateDocumentContent: async (id, content) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        const doc = get().documents.find(d => d.id === id);
+
+        if (!doc) return;
+
+        // Save current version to history before updating
+        await supabase.from('document_versions').insert({
+            document_id: id,
+            user_id: user?.id,
+            markdown_content: doc.markdown_content,
+            form_data: doc.form_data,
+            version_number: 1 // We can increment this if needed, keeping simple for now
+        });
+
+        const { error } = await supabase
+            .from('documents')
+            .update({ markdown_content: content })
+            .eq('id', id);
+
+        if (!error) {
+            set((state) => ({
+                documents: state.documents.map((d) =>
+                    d.id === id ? { ...d, markdown_content: content } : d
+                ),
+            }));
+        } else {
+            console.error('Error updating content:', error.message);
+        }
+    },
+
+    duplicateDocument: async (id) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        const original = get().documents.find(d => d.id === id);
+
+        if (!original) return;
+
+        const newId = `DOC-${Math.floor(Math.random() * 9000) + 1000}`;
+        const newDoc = {
+            ...original,
+            id: newId,
+            title: `${original.title} (Cópia)`,
+            status: 'rascunho',
+            user_id: user?.id,
+            created_at: new Date().toISOString()
+        };
+
+        const { error } = await supabase.from('documents').insert(newDoc);
+
+        if (!error) {
+            await get().fetchDocuments();
+            return newId;
+        } else {
+            console.error('Error duplicating document:', error.message);
+            return undefined;
         }
     },
 
