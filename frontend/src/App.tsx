@@ -3,8 +3,10 @@ import { Wizard } from "./pages/Wizard";
 import { Templates } from "./pages/Templates";
 import { DocumentDetails } from "./pages/DocumentDetails";
 import { Dashboard } from "./pages/Dashboard";
+import { Board } from "./pages/Board";
 import { Login } from "./pages/Login";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AppLayout } from "./components/AppLayout";
 import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -24,7 +26,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  return <>{children}</>;
+  return <AppLayout>{children}</AppLayout>;
 }
 
 function AppRoutes() {
@@ -43,8 +45,9 @@ function AppRoutes() {
       {/* Public route */}
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
 
-      {/* Protected routes */}
+      {/* Protected routes (with sidebar) */}
       <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/board" element={<ProtectedRoute><Board /></ProtectedRoute>} />
       <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
       <Route path="/wizard/:templateId" element={<ProtectedRoute><Wizard /></ProtectedRoute>} />
       <Route path="/wizard" element={<ProtectedRoute><Wizard /></ProtectedRoute>} />

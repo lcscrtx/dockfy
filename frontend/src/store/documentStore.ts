@@ -6,7 +6,7 @@ export interface SavedDocument {
     schema_id: string;
     title: string;
     type: string;
-    status: 'gerado' | 'rascunho';
+    status: 'rascunho' | 'gerado' | 'enviado' | 'assinado';
     value: string;
     markdown_content: string;
     form_data: Record<string, string>;
@@ -19,6 +19,7 @@ interface DocumentStoreState {
     loading: boolean;
     fetchDocuments: () => Promise<void>;
     addDocument: (doc: Omit<SavedDocument, 'created_at' | 'user_id'>) => Promise<void>;
+    updateDocumentStatus: (id: string, status: SavedDocument['status']) => Promise<void>;
     getDocumentById: (id: string) => SavedDocument | undefined;
 }
 
@@ -61,6 +62,24 @@ export const useDocumentStore = create<DocumentStoreState>((set, get) => ({
             await get().fetchDocuments();
         } else {
             console.error('Error saving document:', error.message);
+        }
+    },
+
+    updateDocumentStatus: async (id, status) => {
+        const { error } = await supabase
+            .from('documents')
+            .update({ status })
+            .eq('id', id);
+
+        if (!error) {
+            // Optimistic update locally
+            set((state) => ({
+                documents: state.documents.map((d) =>
+                    d.id === id ? { ...d, status } : d
+                ),
+            }));
+        } else {
+            console.error('Error updating status:', error.message);
         }
     },
 

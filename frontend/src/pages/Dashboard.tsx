@@ -1,12 +1,10 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Plus, Search, FileCheck, Building2, Home, FileSignature, LogOut, Loader2 } from 'lucide-react';
+import { FileText, Plus, Search, FileCheck, Building2, Home, FileSignature, Loader2 } from 'lucide-react';
 import { useDocumentStore } from '../store/documentStore';
-import { useAuth } from '../contexts/AuthContext';
 
 export function Dashboard() {
     const navigate = useNavigate();
-    const { user, signOut } = useAuth();
     const { documents, loading, fetchDocuments } = useDocumentStore();
 
     // Fetch documents from Supabase on mount
@@ -22,60 +20,26 @@ export function Dashboard() {
     ).length;
     const totalRascunhos = documents.filter((d) => d.status === 'rascunho').length;
 
-    const handleLogout = async () => {
-        await signOut();
-        navigate('/login');
-    };
-
-    // User initials for avatar
-    const initials = user?.email?.slice(0, 2).toUpperCase() || 'U';
-
     return (
-        <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
-            {/* Top Navigation */}
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-10 w-full">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center shadow-sm">
-                            <FileText className="w-5 h-5 text-white" />
-                        </div>
-                        <span className="font-bold text-xl tracking-tight text-slate-900">Dockfy</span>
+        <div className="min-h-screen flex flex-col">
+            {/* Top Bar */}
+            <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
+                <div className="px-6 lg:px-8 h-16 flex items-center justify-between">
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-900">Meus Documentos</h1>
+                        <p className="text-xs text-slate-500">Crie e gerencie seus contratos de forma simples e rápida.</p>
                     </div>
-
-                    <div className="flex items-center gap-3">
-                        <span className="text-xs text-slate-500 hidden sm:block">{user?.email}</span>
-                        <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-sm font-semibold text-slate-600">
-                            {initials}
-                        </div>
-                        <button
-                            onClick={handleLogout}
-                            className="text-slate-400 hover:text-slate-700 transition-colors p-1.5 rounded-md hover:bg-slate-100"
-                            title="Sair"
-                        >
-                            <LogOut className="w-4 h-4" />
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => navigate('/templates')}
+                        className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-sm transition-all active:scale-[0.97]"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Novo Documento
+                    </button>
                 </div>
             </header>
 
-            <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-                {/* Page Header */}
-                <div className="sm:flex sm:items-center sm:justify-between mb-8">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Meus Documentos</h1>
-                        <p className="text-sm text-slate-500 mt-1">Crie e gerencie seus contratos de forma simples e rápida.</p>
-                    </div>
-                    <div className="mt-4 sm:mt-0">
-                        <button
-                            onClick={() => navigate('/templates')}
-                            className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition-all active:scale-[0.98]"
-                        >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Novo Documento
-                        </button>
-                    </div>
-                </div>
-
+            <div className="flex-1 px-6 lg:px-8 py-8">
                 {/* KPIs */}
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
                     <div className="bg-white overflow-hidden rounded-xl border border-slate-200 shadow-sm p-5 hover:border-blue-200 transition-colors cursor-default">
@@ -125,7 +89,7 @@ export function Dashboard() {
                 </div>
 
                 {/* Documents Table */}
-                <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-12">
+                <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                     <div className="px-6 py-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <h3 className="text-base font-semibold text-slate-900">Contratos Recentes</h3>
                         <div className="flex items-center gap-2">
@@ -189,9 +153,17 @@ export function Dashboard() {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                {doc.status === 'gerado' ? (
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                                                        Pronto
+                                                {doc.status === 'assinado' ? (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                        Assinado
+                                                    </span>
+                                                ) : doc.status === 'enviado' ? (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                                                        Enviado
+                                                    </span>
+                                                ) : doc.status === 'gerado' ? (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                        Gerado
                                                     </span>
                                                 ) : (
                                                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
@@ -212,7 +184,7 @@ export function Dashboard() {
                         </table>
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
     );
 }
