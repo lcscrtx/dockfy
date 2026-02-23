@@ -1,96 +1,151 @@
-import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
+import { create } from "zustand";
+import { supabase } from "../lib/supabase";
 
 export interface Imovel {
-    id: string;
-    user_id?: string;
-    apelido: string;
-    endereco: string;
-    cep: string;
-    cidade: string;
-    estado: string;
-    bairro: string;
-    tipo: 'residencial' | 'comercial' | 'terreno' | 'rural';
-    area_total: string;
-    area_construida: string;
-    matricula: string;
-    iptu: string;
-    descricao: string;
-    proprietario_id?: string;
-    created_at: string;
+  id: string;
+  user_id?: string;
+  apelido: string;
+  endereco: string;
+  cep: string;
+  cidade: string;
+  estado: string;
+  bairro: string;
+  tipo: "residencial" | "comercial" | "industrial" | "terreno" | "rural";
+  area_total: string;
+  area_construida: string;
+  matricula: string;
+  iptu: string;
+  descricao: string;
+  proprietario_id?: string;
+  created_at: string;
 }
 
 interface ImovelStoreState {
-    imoveis: Imovel[];
-    loading: boolean;
-    fetchImoveis: () => Promise<void>;
-    addImovel: (imovel: Omit<Imovel, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
-    updateImovel: (id: string, data: Partial<Imovel>) => Promise<void>;
-    deleteImovel: (id: string) => Promise<void>;
-    getImovelById: (id: string) => Imovel | undefined;
+  imoveis: Imovel[];
+  loading: boolean;
+  getCurrentUserId: () => Promise<string | null>;
+  fetchImoveis: () => Promise<void>;
+  addImovel: (
+    imovel: Omit<Imovel, "id" | "user_id" | "created_at">,
+  ) => Promise<void>;
+  createImovel: (
+    imovel: Omit<Imovel, "id" | "user_id" | "created_at">,
+  ) => Promise<void>;
+  updateImovel: (id: string, data: Partial<Imovel>) => Promise<void>;
+  deleteImovel: (id: string) => Promise<void>;
+  getImovelById: (id: string) => Imovel | undefined;
 }
 
 export const useImovelStore = create<ImovelStoreState>((set, get) => ({
-    imoveis: [],
-    loading: false,
+  imoveis: [],
+  loading: false,
 
-    fetchImoveis: async () => {
-        set({ loading: true });
-        const { data, error } = await supabase
-            .from('imoveis')
-            .select('*')
-            .order('apelido', { ascending: true });
+  getCurrentUserId: async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return user?.id ?? null;
+  },
 
-        if (!error && data) {
-            set({ imoveis: data as Imovel[] });
-        }
-        set({ loading: false });
-    },
+  fetchImoveis: async () => {
+    set({ loading: true });
+    const userId = await get().getCurrentUserId();
+    if (!userId) {
+      set({ imoveis: [], loading: false });
+      return;
+    }
 
-    addImovel: async (imovel) => {
-        const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from("imoveis")
+      .select("*")
+      .eq("user_id", userId)
+      .order("apelido", { ascending: true });
 
-        const row = {
-            ...imovel,
-            user_id: user?.id,
-        };
+    if (!error && data) {
+      set({ imoveis: data as Imovel[] });
+    }
+    set({ loading: false });
+  },
 
-        const { error } = await supabase.from('imoveis').insert(row);
+  addImovel: async (imovel) => {
+    const userId = await get().getCurrentUserId();
+    if (!userId) return;
 
-        if (!error) {
-            await get().fetchImoveis();
-        } else {
-            console.error('Error adding imovel:', error.message);
-        }
-    },
+    const row = {
+      ...imovel,
+      user_id: userId,
+    };
 
-    updateImovel: async (id, data) => {
-        const { error } = await supabase
-            .from('imoveis')
-            .update(data)
-            .eq('id', id);
+    let { error } = await supabase.from("imoveis").insert(row);
 
-        if (!error) {
-            await get().fetchImoveis();
-        } else {
-            console.error('Error updating imovel:', error.message);
-        }
-    },
+    if (
+      error &&
+      row.tipo === "industrial" &&
+      /check|enum|constraint|invalid input value/i.test(error.message)
+    ) {
+      ({ error } = await supabase.from("imoveis").insert({
+        ...row,
+        tipo: "comercial",
+      }));
+    }
 
-    deleteImovel: async (id) => {
-        const { error } = await supabase
-            .from('imoveis')
-            .delete()
-            .eq('id', id);
+    if (!error) {
+      await get().fetchImoveis();
+    } else {
+      console.error("Error adding imovel:", error.message);
+    }
+  },
+  createImovel: async (imovel) => {
+    await get().addImovel(imovel);
+  },
 
-        if (!error) {
-            set((state) => ({
-                imoveis: state.imoveis.filter((i) => i.id !== id),
-            }));
-        } else {
-            console.error('Error deleting imovel:', error.message);
-        }
-    },
+  updateImovel: async (id, data) => {
+    const userId = await get().getCurrentUserId();
+    if (!userId) return;
 
-    getImovelById: (id) => get().imoveis.find((i) => i.id === id),
+    let { error } = await supabase
+      .from("imoveis")
+      .update(data)
+      .eq("id", id)
+      .eq("user_id", userId);
+
+    if (
+      error &&
+      data.tipo === "industrial" &&
+      /check|enum|constraint|invalid input value/i.test(error.message)
+    ) {
+      ({ error } = await supabase
+        .from("imoveis")
+        .update({ ...data, tipo: "comercial" })
+        .eq("id", id)
+        .eq("user_id", userId));
+    }
+
+    if (!error) {
+      await get().fetchImoveis();
+    } else {
+      console.error("Error updating imovel:", error.message);
+    }
+  },
+
+  deleteImovel: async (id) => {
+    const userId = await get().getCurrentUserId();
+    if (!userId) return;
+
+    const { error } = await supabase
+      .from("imoveis")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId);
+
+    if (!error) {
+      set((state) => ({
+        imoveis: state.imoveis.filter((i) => i.id !== id),
+      }));
+    } else {
+      console.error("Error deleting imovel:", error.message);
+    }
+  },
+
+  getImovelById: (id) => get().imoveis.find((i) => i.id === id),
 }));

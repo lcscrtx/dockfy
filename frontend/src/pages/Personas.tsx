@@ -1,406 +1,408 @@
-import { useEffect, useState } from 'react';
-import { usePersonaStore, type Persona } from '../store/personaStore';
-import { Plus, Search, Loader2, UserCircle2, Pencil, Trash2, X, Save, Building2, Key, ShoppingBag, Users, User } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { usePersonaStore, type Persona } from "../store/personaStore";
+import {
+    Plus,
+    Search,
+    RefreshCw,
+    Users,
+    Trash2,
+    X,
+    Check,
+    Pencil,
+} from "lucide-react";
 
-const TIPO_OPTIONS: { value: Persona['tipo']; label: string; icon: typeof User; color: string }[] = [
-    { value: 'proprietario', label: 'Proprietário', icon: Building2, color: 'bg-blue-50 text-blue-700 border-blue-200' },
-    { value: 'inquilino', label: 'Inquilino', icon: Key, color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-    { value: 'comprador', label: 'Comprador', icon: ShoppingBag, color: 'bg-purple-50 text-purple-700 border-purple-200' },
-    { value: 'vendedor', label: 'Vendedor', icon: Users, color: 'bg-amber-50 text-amber-700 border-amber-200' },
-    { value: 'generico', label: 'Genérico', icon: User, color: 'bg-slate-100 text-slate-700 border-slate-200' },
-];
+type PersonaForm = {
+    nome: string;
+    tipo: "fisica" | "juridica";
+    cpf_cnpj: string;
+    rg: string;
+    email: string;
+    telefone: string;
+    endereco: string;
+    cidade: string;
+    estado: string;
+    cep: string;
+    nacionalidade: string;
+    estado_civil: string;
+    profissao: string;
+    regime_bens: string;
+};
 
-const ESTADO_CIVIL_OPTIONS = [
-    { label: 'Solteiro(a)', value: 'solteiro' },
-    { label: 'Casado(a)', value: 'casado' },
-    { label: 'Divorciado(a)', value: 'divorciado' },
-    { label: 'Viúvo(a)', value: 'viuvo' },
-];
-
-const REGIME_OPTIONS = [
-    { label: 'Não aplicável', value: 'na' },
-    { label: 'Comunhão Parcial', value: 'parcial' },
-    { label: 'Comunhão Universal', value: 'universal' },
-    { label: 'Separação Total', value: 'separacao' },
-];
-
-const emptyForm: Omit<Persona, 'id' | 'user_id' | 'created_at'> = {
-    nome: '',
-    cpf_cnpj: '',
-    rg: '',
-    estado_civil: '',
-    profissao: '',
-    endereco: '',
-    regime_bens: 'na',
-    telefone: '',
-    email: '',
-    tipo: 'generico',
+const emptyPersona: PersonaForm = {
+    nome: "",
+    tipo: "fisica",
+    cpf_cnpj: "",
+    rg: "",
+    email: "",
+    telefone: "",
+    endereco: "",
+    cidade: "",
+    estado: "",
+    cep: "",
+    nacionalidade: "Brasileiro(a)",
+    estado_civil: "",
+    profissao: "",
+    regime_bens: "",
 };
 
 export function Personas() {
-    const { personas, loading, fetchPersonas, addPersona, updatePersona, deletePersona } = usePersonaStore();
-    const [search, setSearch] = useState('');
+    const { personas, loading, fetchPersonas, createPersona, updatePersona, deletePersona } =
+        usePersonaStore();
+    const [search, setSearch] = useState("");
     const [showModal, setShowModal] = useState(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [form, setForm] = useState(emptyForm);
-    const [saving, setSaving] = useState(false);
-    const [filterTipo, setFilterTipo] = useState<string>('all');
+    const [editing, setEditing] = useState<Persona | null>(null);
+    const [form, setForm] = useState<PersonaForm>(emptyPersona);
+    const [filterTipo, setFilterTipo] = useState<string>("all");
+    const [saveError, setSaveError] = useState("");
 
     useEffect(() => {
         fetchPersonas();
     }, [fetchPersonas]);
 
-    const filteredPersonas = personas.filter((p) => {
-        const matchSearch = p.nome.toLowerCase().includes(search.toLowerCase()) ||
-            p.cpf_cnpj?.includes(search) ||
-            p.email?.toLowerCase().includes(search.toLowerCase());
-        const matchTipo = filterTipo === 'all' || p.tipo === filterTipo;
+    const filtered = personas.filter((p) => {
+        const matchSearch =
+            p.nome?.toLowerCase().includes(search.toLowerCase()) ||
+            p.cpf_cnpj?.toLowerCase().includes(search.toLowerCase());
+        const matchTipo = filterTipo === "all" || p.tipo === filterTipo;
         return matchSearch && matchTipo;
     });
 
     const openCreate = () => {
-        setEditingId(null);
-        setForm(emptyForm);
+        setEditing(null);
+        setForm(emptyPersona);
+        setSaveError("");
         setShowModal(true);
     };
 
-    const openEdit = (persona: Persona) => {
-        setEditingId(persona.id);
+    const openEdit = (p: Persona) => {
+        setEditing(p);
+        const tipoPessoa: PersonaForm["tipo"] =
+            p.tipo === "juridica" ? "juridica" : "fisica";
         setForm({
-            nome: persona.nome,
-            cpf_cnpj: persona.cpf_cnpj || '',
-            rg: persona.rg || '',
-            estado_civil: persona.estado_civil || '',
-            profissao: persona.profissao || '',
-            endereco: persona.endereco || '',
-            regime_bens: persona.regime_bens || 'na',
-            telefone: persona.telefone || '',
-            email: persona.email || '',
-            tipo: persona.tipo,
+            nome: p.nome || "",
+            tipo: tipoPessoa,
+            cpf_cnpj: p.cpf_cnpj || "",
+            rg: p.rg || "",
+            email: p.email || "",
+            telefone: p.telefone || "",
+            endereco: p.endereco || "",
+            cidade: p.cidade || "",
+            estado: p.estado || "",
+            cep: p.cep || "",
+            nacionalidade: p.nacionalidade || "Brasileiro(a)",
+            estado_civil: p.estado_civil || "",
+            profissao: p.profissao || "",
+            regime_bens: p.regime_bens || "",
         });
+        setSaveError("");
         setShowModal(true);
     };
 
     const handleSave = async () => {
         if (!form.nome.trim()) return;
-        setSaving(true);
-        if (editingId) {
-            await updatePersona(editingId, form);
-        } else {
-            await addPersona(form);
+        setSaveError("");
+        try {
+            if (editing) {
+                await updatePersona(editing.id, form);
+            } else {
+                await createPersona(form);
+            }
+            setShowModal(false);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Falha ao salvar pessoa.";
+            setSaveError(message);
         }
-        setSaving(false);
-        setShowModal(false);
     };
 
-    const handleDelete = async (id: string) => {
-        await deletePersona(id);
-    };
-
-    const getTipoBadge = (tipo: string) => {
-        const opt = TIPO_OPTIONS.find((t) => t.value === tipo) || TIPO_OPTIONS[4];
-        const Icon = opt.icon;
-        return (
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium border ${opt.color}`}>
-                <Icon className="w-3 h-3" />
-                {opt.label}
-            </span>
-        );
-    };
-
-    const updateField = (field: string, value: string) => {
-        setForm((prev) => ({ ...prev, [field]: value }));
-    };
+    const inputClass = "input-base";
 
     return (
-        <div className="min-h-screen flex flex-col">
-            {/* Top Bar */}
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-                <div className="px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <div>
-                        <h1 className="text-xl font-bold text-slate-900">Pessoas</h1>
-                        <p className="text-xs text-slate-500">Cadastre pessoas para preencher contratos automaticamente.</p>
-                    </div>
-                    <button
-                        onClick={openCreate}
-                        className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg shadow-sm transition-all active:scale-[0.97]"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Nova Pessoa
-                    </button>
+        <div className="page-shell">
+            <div className="flex items-center justify-between mb-8">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                        Gestão de Partes
+                    </h1>
+                    <p className="text-sm text-slate-500 mt-1">
+                        Mantenha o cadastro de clientes, fiadores e contratantes atualizado.
+                    </p>
                 </div>
-            </header>
+                <button
+                    onClick={openCreate}
+                    className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm font-semibold text-sm px-4 py-2.5 rounded-lg transition-all active:scale-[0.98]"
+                >
+                    <Plus size={18} strokeWidth={2.5} />
+                    Nova Parte
+                </button>
+            </div>
 
-            <div className="flex-1 px-6 lg:px-8 py-8">
-                {/* Filters */}
-                <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                    <div className="relative flex-1 max-w-md">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Search className="h-4 w-4 text-slate-400" />
-                        </div>
+            <div className="bg-white border border-slate-200 shadow-soft rounded-xl overflow-hidden flex flex-col">
+                {/* Toolbar */}
+                <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+                    <div className="relative w-80">
+                        <Search
+                            size={16}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                        />
                         <input
-                            type="text"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Buscar por nome, CPF ou email..."
-                            className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg bg-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 sm:text-sm transition-colors"
+                            placeholder="Buscar por nome ou CPF/CNPJ..."
+                            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
                         />
                     </div>
-                    <div className="flex gap-2 flex-wrap">
-                        <button
-                            onClick={() => setFilterTipo('all')}
-                            className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${filterTipo === 'all' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
-                        >
-                            Todos ({personas.length})
-                        </button>
-                        {TIPO_OPTIONS.map((opt) => {
-                            const count = personas.filter((p) => p.tipo === opt.value).length;
-                            return (
+                    <div className="flex items-center gap-3">
+                        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                            {[
+                                { key: "all", label: "Todos" },
+                                { key: "fisica", label: "Pessoa Física" },
+                                { key: "juridica", label: "Pessoa Jurídica" },
+                            ].map((f) => (
                                 <button
-                                    key={opt.value}
-                                    onClick={() => setFilterTipo(opt.value)}
-                                    className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${filterTipo === opt.value ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                                    key={f.key}
+                                    onClick={() => setFilterTipo(f.key)}
+                                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${filterTipo === f.key
+                                            ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50"
+                                            : "text-slate-500 hover:text-slate-700"
+                                        }`}
                                 >
-                                    {opt.label} ({count})
+                                    {f.label}
                                 </button>
-                            );
-                        })}
+                            ))}
+                        </div>
                     </div>
                 </div>
 
-                {/* Cards Grid */}
+                {/* Table */}
                 {loading ? (
-                    <div className="flex items-center justify-center h-64">
-                        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+                    <div className="flex justify-center py-20 bg-white">
+                        <RefreshCw size={24} className="text-blue-500 animate-spin mb-4" />
                     </div>
-                ) : filteredPersonas.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-64 text-center">
-                        <UserCircle2 className="w-16 h-16 text-slate-200 mb-4" />
-                        <p className="text-slate-500 font-medium">
-                            {search || filterTipo !== 'all' ? 'Nenhuma pessoa encontrada.' : 'Nenhuma pessoa cadastrada.'}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-1">
-                            {search || filterTipo !== 'all' ? 'Tente alterar os filtros.' : 'Clique em "Nova Pessoa" para começar.'}
+                ) : filtered.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-white text-center">
+                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 border border-slate-200">
+                            <Users size={24} className="text-slate-400" />
+                        </div>
+                        <h3 className="text-base font-semibold text-slate-900 mb-1">
+                            Nenhuma parte cadastrada
+                        </h3>
+                        <p className="text-sm text-slate-500 max-w-sm">
+                            Use o botão Nova Parte acima para cadastrar clientes, fiadores ou empresas.
                         </p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        {filteredPersonas.map((persona) => (
-                            <div
-                                key={persona.id}
-                                className="bg-white rounded-xl border border-slate-200 p-5 hover:border-slate-300 hover:shadow-md transition-all group"
-                            >
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600">
-                                            {persona.nome.slice(0, 2).toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <h3 className="text-sm font-semibold text-slate-900">{persona.nome}</h3>
-                                            {persona.cpf_cnpj && (
-                                                <p className="text-xs text-slate-400 mt-0.5">{persona.cpf_cnpj}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {getTipoBadge(persona.tipo)}
-                                </div>
-
-                                <div className="space-y-1.5 text-xs text-slate-500 mb-4">
-                                    {persona.profissao && <p>🏢 {persona.profissao}</p>}
-                                    {persona.telefone && <p>📱 {persona.telefone}</p>}
-                                    {persona.email && <p>✉️ {persona.email}</p>}
-                                    {persona.endereco && <p className="truncate">📍 {persona.endereco}</p>}
-                                </div>
-
-                                <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
-                                    <button
-                                        onClick={() => openEdit(persona)}
-                                        className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-slate-500 hover:text-blue-600 hover:bg-blue-50 py-2 rounded-lg transition-colors"
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50/80 border-b border-slate-200">
+                                    <th className="px-6 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Parte</th>
+                                    <th className="px-6 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Documento</th>
+                                    <th className="px-6 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Contato</th>
+                                    <th className="px-6 py-3.5 text-xs font-semibold text-slate-600 uppercase tracking-wide text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {filtered.map((p) => (
+                                    <tr
+                                        key={p.id}
+                                        className="hover:bg-slate-50/80 transition-colors group"
                                     >
-                                        <Pencil className="w-3.5 h-3.5" />
-                                        Editar
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(persona.id)}
-                                        className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 py-2 rounded-lg transition-colors"
-                                    >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                        Excluir
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-slate-50 text-blue-600 rounded-lg border border-blue-100/50">
+                                                    <Users size={16} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-slate-900">{p.nome}</p>
+                                                    <span className={`inline-flex items-center mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${p.tipo === "juridica" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700"}`}>
+                                                        {p.tipo === "juridica" ? "Jurídica" : "Física"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-600 font-mono">
+                                            {p.cpf_cnpj || "—"}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <p className="text-sm text-slate-700">{p.email || "Sem e-mail"}</p>
+                                            <p className="text-xs text-slate-500 mt-0.5">{p.telefone || "Sem telefone"}</p>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => openEdit(p)}
+                                                    className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                                >
+                                                    <Pencil size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        if (confirm("Excluir?")) deletePersona(p.id);
+                                                    }}
+                                                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 )}
             </div>
 
-            {/* Create/Edit Modal */}
             {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowModal(false)} />
-                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
-                        {/* Modal Header */}
-                        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-slate-900">
-                                {editingId ? 'Editar Pessoa' : 'Nova Pessoa'}
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-2xl px-8 py-6 shadow-xl border border-slate-200 flex flex-col max-h-[90vh]">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-bold text-slate-900">
+                                {editing ? "Editar Parte Registrada" : "Cadastrar Nova Parte"}
                             </h2>
                             <button
                                 onClick={() => setShowModal(false)}
-                                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                                className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
                             >
-                                <X className="w-5 h-5" />
+                                <X size={20} />
                             </button>
                         </div>
 
-                        {/* Modal Body */}
-                        <div className="overflow-y-auto flex-1 p-6 space-y-4">
-                            {/* Tipo */}
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">Tipo</label>
-                                <div className="flex gap-2 flex-wrap">
-                                    {TIPO_OPTIONS.map((opt) => (
-                                        <button
-                                            key={opt.value}
-                                            onClick={() => updateField('tipo', opt.value)}
-                                            className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${form.tipo === opt.value ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
-                                        >
-                                            {opt.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Nome */}
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Nome Completo *</label>
-                                <input
-                                    type="text"
-                                    value={form.nome}
-                                    onChange={(e) => updateField('nome', e.target.value)}
-                                    placeholder="Ex: Carlos Alberto Gomes"
-                                    className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                            </div>
-
-                            {/* CPF + RG */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">CPF / CNPJ</label>
-                                    <input
-                                        type="text"
-                                        value={form.cpf_cnpj}
-                                        onChange={(e) => updateField('cpf_cnpj', e.target.value)}
-                                        placeholder="000.000.000-00"
-                                        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">RG</label>
-                                    <input
-                                        type="text"
-                                        value={form.rg}
-                                        onChange={(e) => updateField('rg', e.target.value)}
-                                        placeholder="00.000.000-0"
-                                        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Estado Civil + Profissão */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Estado Civil</label>
-                                    <select
-                                        value={form.estado_civil}
-                                        onChange={(e) => updateField('estado_civil', e.target.value)}
-                                        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                                    >
-                                        <option value="">Selecionar...</option>
-                                        {ESTADO_CIVIL_OPTIONS.map((opt) => (
-                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Profissão</label>
-                                    <input
-                                        type="text"
-                                        value={form.profissao}
-                                        onChange={(e) => updateField('profissao', e.target.value)}
-                                        placeholder="Ex: Empresário"
-                                        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Regime de Bens */}
-                            {form.estado_civil === 'casado' && (
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Regime de Bens</label>
-                                    <select
-                                        value={form.regime_bens}
-                                        onChange={(e) => updateField('regime_bens', e.target.value)}
-                                        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                                    >
-                                        {REGIME_OPTIONS.map((opt) => (
-                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                        ))}
-                                    </select>
+                        <div className="space-y-5 overflow-y-auto pr-2 pb-6">
+                            {saveError && (
+                                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                                    {saveError}
                                 </div>
                             )}
-
-                            {/* Endereço */}
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Endereço Completo</label>
-                                <input
-                                    type="text"
-                                    value={form.endereco}
-                                    onChange={(e) => updateField('endereco', e.target.value)}
-                                    placeholder="Rua, nº, Bairro, Cidade - UF"
-                                    className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                            </div>
-
-                            {/* Telefone + Email */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Telefone</label>
+                            <div className="grid grid-cols-2 gap-5">
+                                <div className="col-span-2">
+                                    <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 block">Nome Completo / Razão Social *</label>
                                     <input
-                                        type="text"
-                                        value={form.telefone}
-                                        onChange={(e) => updateField('telefone', e.target.value)}
-                                        placeholder="(00) 00000-0000"
-                                        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        value={form.nome}
+                                        onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                                        className={inputClass}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+                                    <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 block">Tipo</label>
+                                    <select
+                                        value={form.tipo}
+                                        onChange={(e) => setForm({ ...form, tipo: e.target.value as "fisica" | "juridica" })}
+                                        className={inputClass}
+                                    >
+                                        <option value="fisica">Pessoa Física</option>
+                                        <option value="juridica">Pessoa Jurídica</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 block">CPF/CNPJ</label>
                                     <input
-                                        type="email"
+                                        value={form.cpf_cnpj}
+                                        onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })}
+                                        className={inputClass}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 block">E-mail</label>
+                                    <input
                                         value={form.email}
-                                        onChange={(e) => updateField('email', e.target.value)}
-                                        placeholder="email@exemplo.com"
-                                        className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                                        className={inputClass}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 block">Telefone</label>
+                                    <input
+                                        value={form.telefone}
+                                        onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                                        className={inputClass}
+                                    />
+                                </div>
+                                {form.tipo === "fisica" && (
+                                    <>
+                                        <div>
+                                            <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 block">RG</label>
+                                            <input
+                                                value={form.rg}
+                                                onChange={(e) => setForm({ ...form, rg: e.target.value })}
+                                                className={inputClass}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 block">Estado Civil</label>
+                                            <input
+                                                value={form.estado_civil}
+                                                onChange={(e) => setForm({ ...form, estado_civil: e.target.value })}
+                                                className={inputClass}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 block">Profissão</label>
+                                            <input
+                                                value={form.profissao}
+                                                onChange={(e) => setForm({ ...form, profissao: e.target.value })}
+                                                className={inputClass}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 block">Regime de Bens</label>
+                                            <input
+                                                value={form.regime_bens}
+                                                onChange={(e) => setForm({ ...form, regime_bens: e.target.value })}
+                                                className={inputClass}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 block">Nacionalidade</label>
+                                            <input
+                                                value={form.nacionalidade}
+                                                onChange={(e) => setForm({ ...form, nacionalidade: e.target.value })}
+                                                className={inputClass}
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                                <div className="col-span-2">
+                                    <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 block">Endereço Completo</label>
+                                    <input
+                                        value={form.endereco}
+                                        onChange={(e) => setForm({ ...form, endereco: e.target.value })}
+                                        className={inputClass}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 block">Cidade</label>
+                                    <input
+                                        value={form.cidade}
+                                        onChange={(e) => setForm({ ...form, cidade: e.target.value })}
+                                        className={inputClass}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5 block">Estado</label>
+                                    <input
+                                        value={form.estado}
+                                        onChange={(e) => setForm({ ...form, estado: e.target.value })}
+                                        className={inputClass}
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Modal Footer */}
-                        <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-3">
+                        <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-200">
                             <button
                                 onClick={() => setShowModal(false)}
-                                className="px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                                className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
                             >
                                 Cancelar
                             </button>
                             <button
                                 onClick={handleSave}
-                                disabled={!form.nome.trim() || saving}
-                                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
+                                disabled={!form.nome.trim()}
+                                className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-all disabled:opacity-50"
                             >
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                {editingId ? 'Salvar Alterações' : 'Cadastrar'}
+                                <Check size={16} strokeWidth={2.5} />
+                                {editing ? "Salvar Alterações" : "Salvar Parte"}
                             </button>
                         </div>
                     </div>

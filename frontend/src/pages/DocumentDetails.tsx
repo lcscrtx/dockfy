@@ -1,60 +1,108 @@
-import { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Download, FileCheck2, Printer, Edit3, ArrowLeft, Copy, Save, X, Loader2, History, Clock, RefreshCcw } from 'lucide-react';
-import { useWizardStore } from '../store/wizardStore';
-import { useDocumentStore } from '../store/documentStore';
-import { useVersionStore } from '../store/versionStore';
-import { schemaRegistry } from '../config/schemas';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { useEffect, useState, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useDocumentStore } from "../store/documentStore";
+import { useVersionStore, type DocumentVersion } from "../store/versionStore";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import {
+    ArrowLeft as ArrowLeftIcon,
+    RefreshCw as ArrowPathIcon,
+    PenSquare as PencilSquareIcon,
+    Check as CheckIcon,
+    X as XMarkIcon,
+    Copy as DocumentDuplicateIcon,
+    Trash2 as TrashIcon,
+    Download as ArrowDownTrayIcon,
+    Printer as PrinterIcon,
+    Clock as ClockIcon,
+} from "lucide-react";
 
 export function DocumentDetails() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-
-    const { documents, fetchDocuments, updateDocumentContent, duplicateDocument } = useDocumentStore();
-    const { versions, fetchVersions, loading: loadingVersions } = useVersionStore();
-    const { generatedDocument: wizardDoc, schemaId: wizardSchemaId } = useWizardStore();
+    const {
+        documents,
+        loading,
+        fetchDocuments,
+        updateDocumentContent,
+        updateDocumentStatus,
+        duplicateDocument,
+        deleteDocument,
+    } = useDocumentStore();
+    const { versions, loading: versionsLoading, fetchVersions } =
+        useVersionStore();
 
     const [isEditing, setIsEditing] = useState(false);
-    const [editContent, setEditContent] = useState('');
-    const [isSaving, setIsSaving] = useState(false);
-    const [isDuplicating, setIsDuplicating] = useState(false);
-    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-    const [showHistoryModal, setShowHistoryModal] = useState(false);
-
-    const pdfRef = useRef<HTMLDivElement>(null);
-
-    // Fetch from Supabase if not already loaded
-    useEffect(() => {
-        if (documents.length === 0) {
-            fetchDocuments();
-        }
-    }, [documents.length, fetchDocuments]);
-
-    const savedDoc = documents.find((d) => d.id === id);
-
-    const markdownContent = savedDoc?.markdown_content || wizardDoc;
-    const resolvedSchemaId = savedDoc?.schema_id || wizardSchemaId;
-    const currentSchema = schemaRegistry[resolvedSchemaId] || schemaRegistry['locacao_residencial'];
+    const [editContent, setEditContent] = useState("");
+    const [showVersions, setShowVersions] = useState(false);
+    const contentRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (markdownContent && !isEditing) {
-            setEditContent(markdownContent);
-        }
-    }, [markdownContent, isEditing]);
+        fetchDocuments();
+    }, [fetchDocuments]);
 
-    const handleOpenHistory = () => {
-        if (id) fetchVersions(id);
-        setShowHistoryModal(true);
+    useEffect(() => {
+        if (id) {
+            fetchVersions(id);
+        }
+    }, [id, fetchVersions]);
+
+    const doc = documents.find((d) => d.id === id);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <ArrowPathIcon className="w-8 h-8 animate-spin text-text-tertiary" />
+            </div>
+        );
+    }
+
+    if (!doc) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center">
+                <p className="text-text-tertiary mb-4">Documento não encontrado.</p>
+                <button
+                    onClick={() => navigate("/")}
+                    className="text-blue-600 hover:underline text-sm font-medium"
+                >
+                    ← Voltar
+                </button>
+            </div>
+        );
+    }
+
+    const handleStartEdit = () => {
+        setEditContent(doc.markdown_content);
+        setIsEditing(true);
     };
 
-    const handleRestoreVersion = async (content: string) => {
-        if (!id) return;
-        setIsSaving(true);
-        await updateDocumentContent(id, content);
-        setIsSaving(false);
-        setShowHistoryModal(false);
+    const handleSaveEdit = async () => {
+        await updateDocumentContent(doc.id, editContent);
+        setIsEditing(false);
+        if (id) fetchVersions(id);
+    };
+
+    const handleCancelEdit = () => {
+        setIsEditing(false);
+        setEditContent("");
+    };
+
+    const handleDuplicate = async () => {
+        const newId = await duplicateDocument(doc.id);
+        if (newId) navigate(`/document/${newId}`);
+    };
+
+    const handleDelete = async () => {
+        if (window.confirm("Tem certeza? Esta ação não pode ser desfeita.")) {
+            await deleteDocument(doc.id);
+            navigate("/");
+        }
+    };
+
+    const handleStatusChange = async (
+        status: "rascunho" | "gerado" | "enviado" | "assinado",
+    ) => {
+        await updateDocumentStatus(doc.id, status);
     };
 
     const handlePrint = () => {
@@ -62,256 +110,283 @@ export function DocumentDetails() {
     };
 
     const handleDownloadPdf = async () => {
-        if (!pdfRef.current || !markdownContent) return;
-        setIsGeneratingPdf(true);
+        type Html2PdfBuilder = {
+            set: (options: {
+                margin: [number, number];
+                filename: string;
+                html2canvas: { scale: number; useCORS: boolean };
+                jsPDF: { unit: "mm"; format: "a4"; orientation: "portrait" };
+            }) => Html2PdfBuilder;
+            from: (element: HTMLElement) => Html2PdfBuilder;
+            save: () => void;
+        };
 
-        try {
-            // @ts-ignore
-            const html2pdf = (await import('html2pdf.js')).default;
-            const element = pdfRef.current;
-            const opt = {
-                margin: 15,
-                filename: `${savedDoc?.title || 'Documento'}.pdf`,
-                image: { type: 'jpeg' as const, quality: 0.98 },
+        const html2pdfModule = await import("html2pdf.js");
+        const html2pdf = html2pdfModule.default as unknown as () => Html2PdfBuilder;
+        const element = contentRef.current;
+        if (!element) return;
+
+        html2pdf()
+            .set({
+                margin: [10, 15],
+                filename: `${doc.title}.pdf`,
                 html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
-            };
-            await html2pdf().set(opt).from(element).save();
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-            alert('Erro ao gerar o PDF. Verifique o console para mais detalhes.');
-        } finally {
-            setIsGeneratingPdf(false);
-        }
+                jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+            })
+            .from(element)
+            .save();
     };
 
-    const handleSaveEdit = async () => {
-        if (!id || !savedDoc) return;
-        setIsSaving(true);
-        await updateDocumentContent(id, editContent);
-        setIsEditing(false);
-        setIsSaving(false);
+    const handleRestoreVersion = async (version: DocumentVersion) => {
+        await updateDocumentContent(doc.id, version.markdown_content);
+        setShowVersions(false);
+        if (id) fetchVersions(id);
     };
 
-    const handleDuplicate = async () => {
-        if (!id || !savedDoc) return;
-        setIsDuplicating(true);
-        const newId = await duplicateDocument(id);
-        setIsDuplicating(false);
-        if (newId) {
-            navigate(`/document/${newId}`);
-        }
+    const statusBadge = (status: string) => {
+        const map: Record<string, { bg: string; text: string; label: string }> = {
+            assinado: {
+                bg: "bg-emerald-50 border-emerald-200",
+                text: "text-emerald-700",
+                label: "Assinado",
+            },
+            enviado: {
+                bg: "bg-amber-50 border-amber-200",
+                text: "text-amber-700",
+                label: "Enviado",
+            },
+            gerado: {
+                bg: "bg-blue-50 border-blue-200",
+                text: "text-blue-700",
+                label: "Gerado",
+            },
+            rascunho: {
+                bg: "bg-slate-50 border-slate-200",
+                text: "text-slate-600",
+                label: "Rascunho",
+            },
+        };
+        const s = map[status] || map.rascunho;
+        return (
+            <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold border ${s.bg} ${s.text}`}
+            >
+                {s.label}
+            </span>
+        );
     };
+
+    const safeMarkdown = doc.markdown_content.replace(/<br\s*\/?>/gi, "  \n");
 
     return (
-        <div className="min-h-screen bg-[#F0F2F5] flex flex-col font-sans">
-            {/* Minimalist Header */}
-            <header className="bg-slate-900 text-white sticky top-0 z-30 shadow-md print:hidden">
-                <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-6">
+        <div className="min-h-screen flex flex-col bg-canvas">
+            {/* Header */}
+            <header className="bg-white/92 backdrop-blur border-b border-base sticky top-0 z-10">
+                <div className="px-4 sm:px-6 lg:px-8 min-h-16 py-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center gap-4">
                         <button
-                            onClick={() => navigate('/')}
-                            className="flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-white transition-colors border-r border-slate-700 pr-6 py-1"
+                            onClick={() => navigate("/")}
+                            className="btn-icon p-1.5"
                         >
-                            <ArrowLeft className="w-4 h-4" />
-                            Voltar ao Início
+                            <ArrowLeftIcon className="w-5 h-5" />
                         </button>
-                        <div className="flex flex-col">
-                            <h1 className="text-base font-bold tracking-tight flex items-center gap-2">
-                                <FileCheck2 className="w-5 h-5 text-blue-400" />
-                                {savedDoc?.title || currentSchema.title}
-                            </h1>
-                            {savedDoc && (
-                                <span className="text-xs text-slate-400">
-                                    {savedDoc.id} • {new Date(savedDoc.created_at).toLocaleDateString('pt-BR')}
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-lg font-semibold text-text-primary">
+                                    {doc.title}
+                                </h1>
+                                {statusBadge(doc.status)}
+                            </div>
+                            <p className="text-xs text-text-tertiary mt-0.5">
+                                {doc.id} · {doc.type} · Criado em{" "}
+                                {new Date(doc.created_at).toLocaleDateString("pt-BR", {
+                                    day: "2-digit",
+                                    month: "long",
+                                    year: "numeric",
+                                })}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap lg:justify-end">
+                        <button
+                            onClick={() => setShowVersions(!showVersions)}
+                            className="btn-secondary px-3 py-2"
+                            title="Histórico de versões"
+                        >
+                            <ClockIcon className="w-4 h-4" />
+                            <span className="hidden sm:inline">Versões</span>
+                            {versions.length > 0 && (
+                                <span className="text-xs bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full font-semibold">
+                                    {versions.length}
                                 </span>
                             )}
-                        </div>
+                        </button>
+                        <button
+                            onClick={handlePrint}
+                            className="btn-icon"
+                            title="Imprimir"
+                        >
+                            <PrinterIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={handleDownloadPdf}
+                            className="btn-icon"
+                            title="Baixar PDF"
+                        >
+                            <ArrowDownTrayIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={handleDuplicate}
+                            className="btn-icon"
+                            title="Duplicar"
+                        >
+                            <DocumentDuplicateIcon className="w-4 h-4" />
+                        </button>
+                        {!isEditing && (
+                            <button
+                                onClick={handleStartEdit}
+                                className="btn-primary px-3 py-2"
+                            >
+                                <PencilSquareIcon className="w-4 h-4" />
+                                Editar
+                            </button>
+                        )}
                     </div>
                 </div>
             </header>
 
-            <main className="flex-1 max-w-[1200px] mx-auto px-4 sm:px-6 py-8 w-full grid grid-cols-1 lg:grid-cols-4 gap-8 items-start h-[calc(100vh-4rem)]">
-
-                {/* PDF/A4 Canvas Viewer */}
-                <div className="lg:col-span-3 h-full flex flex-col items-center overflow-y-auto pt-2 pb-20 custom-scrollbar relative print:col-span-4 print:overflow-visible print:p-0">
-                    <div className="w-full max-w-[850px] bg-white shadow-xl ring-1 ring-slate-900/5 min-h-[1100px] rounded-sm relative selection:bg-blue-100 mb-8 p-12 sm:p-20 flex flex-col print:shadow-none print:ring-0 print:p-0 print:m-0 print:w-full">
-                        {isEditing ? (
-                            <div className="flex-1 flex flex-col h-full min-h-[800px]">
-                                <div className="flex items-center justify-between mb-4 border-b border-slate-200 pb-4">
-                                    <h2 className="text-lg font-bold text-slate-900">Modo de Edição Livre</h2>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => {
-                                                setIsEditing(false);
-                                                setEditContent(markdownContent || '');
-                                            }}
-                                            className="px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-md transition-colors flex items-center gap-1.5"
-                                        >
-                                            <X className="w-4 h-4" /> Cancelar
-                                        </button>
-                                        <button
-                                            onClick={handleSaveEdit}
-                                            disabled={isSaving}
-                                            className="px-3 py-1.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors flex items-center gap-1.5"
-                                        >
-                                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                            Salvar Alterações
-                                        </button>
-                                    </div>
-                                </div>
-                                <textarea
-                                    value={editContent}
-                                    onChange={(e) => setEditContent(e.target.value)}
-                                    className="flex-1 w-full p-4 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                                    placeholder="Comece a editar o conteúdo markdown do seu documento..."
-                                />
-                            </div>
-                        ) : (
-                            <div ref={pdfRef} className="prose prose-slate prose-sm max-w-none relative z-10 prose-headings:font-serif prose-headings:font-bold prose-headings:text-black prose-headings:text-center prose-headings:uppercase prose-p:font-serif prose-p:text-slate-900 prose-p:leading-relaxed prose-p:text-justify prose-li:font-serif prose-li:text-justify print:prose-p:text-black print:text-black">
-                                {markdownContent ? (
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                        {markdownContent}
-                                    </ReactMarkdown>
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center h-full text-slate-400 font-sans mt-32 print:hidden">
-                                        <FileCheck2 className="w-16 h-16 mb-4 opacity-30" />
-                                        <p className="font-semibold text-xl text-slate-600">Nenhum contrato gerado nesta aba.</p>
-                                        <p className="text-base mt-2">Volte ao início e preencha um formulário para gerar um documento novo.</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+            <div className="flex-1 flex">
+                {showVersions && (
+                    <button
+                        onClick={() => setShowVersions(false)}
+                        className="fixed inset-0 bg-black/25 z-20 lg:hidden"
+                        aria-label="Fechar histórico"
+                    />
+                )}
+                {/* Main Content */}
+                <div className="flex-1 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 overflow-auto">
+                    {/* Status selector */}
+                    <div className="surface-card px-4 py-3 mb-6 flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mr-2">
+                            Status:
+                        </span>
+                        {(
+                            ["rascunho", "gerado", "enviado", "assinado"] as const
+                        ).map((s) => (
+                            <button
+                                key={s}
+                                onClick={() => handleStatusChange(s)}
+                                className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors capitalize ${doc.status === s
+                                    ? "bg-blue-50 border-blue-300 text-blue-700"
+                                    : "border-base text-text-secondary hover:bg-black/5"
+                                    }`}
+                            >
+                                {s}
+                            </button>
+                        ))}
+                        <div className="flex-1" />
+                        <button
+                            onClick={handleDelete}
+                            className="btn-icon hover:text-red-600 hover:bg-red-50"
+                            title="Excluir"
+                        >
+                            <TrashIcon className="w-4 h-4" />
+                        </button>
                     </div>
+
+                    {isEditing ? (
+                        <div className="flex flex-col h-full">
+                            <textarea
+                                value={editContent}
+                                onChange={(e) => setEditContent(e.target.value)}
+                                className="flex-1 w-full border border-base rounded-lg p-6 text-sm font-mono min-h-[500px] focus:outline-none focus:ring-2 focus:ring-blue-500/25 resize-none bg-white shadow-soft"
+                            />
+                            <div className="flex items-center justify-end gap-3 mt-4">
+                                <button
+                                    onClick={handleCancelEdit}
+                                    className="btn-secondary px-4 py-2"
+                                >
+                                    <XMarkIcon className="w-4 h-4" />
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleSaveEdit}
+                                    className="btn-primary px-4 py-2"
+                                >
+                                    <CheckIcon className="w-4 h-4" />
+                                    Salvar alterações
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div
+                            ref={contentRef}
+                            className="surface-card p-8 max-w-4xl mx-auto prose prose-slate prose-headings:text-text-primary prose-p:text-text-secondary prose-li:text-text-secondary"
+                        >
+                            <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml>
+                                {safeMarkdown}
+                            </ReactMarkdown>
+                        </div>
+                    )}
                 </div>
 
-                {/* Sidebar */}
-                <div className="lg:col-span-1 h-full pt-2 pb-20 hidden lg:flex flex-col gap-6 print:hidden sticky top-6 overflow-y-auto custom-scrollbar">
-                    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 relative overflow-hidden flex-shrink-0">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-blue-600"></div>
-                        <h3 className="font-bold text-slate-900 text-lg mb-4">Ações do Documento</h3>
-
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={handleDownloadPdf}
-                                disabled={!markdownContent || isGeneratingPdf || isEditing}
-                                className="w-full inline-flex justify-center items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50 transition-all"
-                            >
-                                {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                                Baixar PDF
-                            </button>
-
-                            <button
-                                onClick={handlePrint}
-                                disabled={!markdownContent || isEditing}
-                                className="w-full inline-flex justify-center items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 disabled:opacity-50 transition-all"
-                            >
-                                <Printer className="w-4 h-4" />
-                                Imprimir
-                            </button>
-
-                            <hr className="my-2 border-slate-100" />
-
-                            <button
-                                onClick={() => setIsEditing(true)}
-                                disabled={!markdownContent || !savedDoc || isEditing}
-                                className="w-full inline-flex justify-start items-center gap-3 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 disabled:opacity-50 transition-all"
-                            >
-                                <Edit3 className="w-4 h-4 text-slate-400 group-hover:text-blue-600" />
-                                Editar Documento
-                            </button>
-
-                            <button
-                                onClick={handleDuplicate}
-                                disabled={!markdownContent || !savedDoc || isDuplicating}
-                                className="w-full inline-flex justify-start items-center gap-3 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 disabled:opacity-50 transition-all"
-                            >
-                                {isDuplicating ? <Loader2 className="w-4 h-4 animate-spin mr-0.5 text-slate-400" /> : <Copy className="w-4 h-4 text-slate-400 group-hover:text-blue-600" />}
-                                Duplicar Contrato
-                            </button>
-
-                            <button
-                                onClick={handleOpenHistory}
-                                disabled={!savedDoc}
-                                className="w-full inline-flex justify-start items-center gap-3 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 disabled:opacity-50 transition-all group"
-                            >
-                                <History className="w-4 h-4 text-slate-400 group-hover:text-blue-600" />
+                {/* Version History Sidebar */}
+                {showVersions && (
+                    <div className="fixed inset-y-0 right-0 z-30 w-[88vw] max-w-xs sm:w-72 border-l border-base bg-white overflow-y-auto shrink-0 shadow-mid lg:static lg:w-72 lg:max-w-none lg:shadow-none">
+                        <div className="px-4 py-4 border-b border-base flex items-center justify-between">
+                            <h3 className="text-sm font-semibold text-text-primary">
                                 Histórico de Versões
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 flex-shrink-0">
-                        <h4 className="font-semibold text-blue-900 text-sm mb-2">
-                            Dica de Edição
-                        </h4>
-                        <p className="text-xs text-blue-800 leading-relaxed mb-2">
-                            A edição permite que você altere cláusulas livremente. As versões antigas são salvas no banco de dados para segurança jurídica.
-                        </p>
-                    </div>
-                </div>
-            </main>
-
-            {/* History Modal */}
-            {showHistoryModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowHistoryModal(false)} />
-                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
-                        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
-                            <div>
-                                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                    <History className="w-5 h-5 text-slate-400" />
-                                    Histórico de Versões
-                                </h2>
-                                <p className="text-xs text-slate-500 mt-1">Veja ou restaure edições anteriores deste documento.</p>
-                            </div>
+                            </h3>
                             <button
-                                onClick={() => setShowHistoryModal(false)}
-                                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                                onClick={() => setShowVersions(false)}
+                                className="btn-icon p-0.5"
                             >
-                                <X className="w-5 h-5" />
+                                <XMarkIcon className="w-4 h-4" />
                             </button>
                         </div>
-
-                        <div className="overflow-y-auto flex-1 p-6">
-                            {loadingVersions ? (
-                                <div className="flex justify-center items-center h-40">
-                                    <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                        <div className="divide-y divide-slate-100">
+                            {versionsLoading ? (
+                                <div className="p-4 text-center">
+                                    <ArrowPathIcon className="w-5 h-5 animate-spin text-text-tertiary mx-auto" />
                                 </div>
                             ) : versions.length === 0 ? (
-                                <div className="text-center text-slate-500 py-10">
-                                    <Clock className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                                    Nenhuma versão anterior encontrada.<br />
-                                    <span className="text-xs">Este documento nunca foi editado.</span>
+                                <div className="p-4 text-center">
+                                    <p className="text-xs text-text-tertiary">
+                                        Nenhuma versão anterior.
+                                    </p>
                                 </div>
                             ) : (
-                                <div className="space-y-4">
-                                    {versions.map((v, index) => (
-                                        <div key={v.id} className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex items-center justify-between">
-                                            <div>
-                                                <p className="text-sm font-semibold text-slate-900">
-                                                    Versão anterior {versions.length - index}
-                                                </p>
-                                                <p className="text-xs text-slate-500 mt-0.5">
-                                                    Salva em: {new Date(v.created_at).toLocaleString('pt-BR')}
-                                                </p>
-                                            </div>
-                                            <button
-                                                onClick={() => handleRestoreVersion(v.markdown_content)}
-                                                disabled={isSaving}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:text-blue-600 transition-colors"
-                                            >
-                                                {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCcw className="w-3.5 h-3.5" />}
-                                                Restaurar
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
+                                versions.map((v) => (
+                                    <div
+                                        key={v.id}
+                                        className="p-4 hover:bg-slate-50 transition-colors"
+                                    >
+                                        <p className="text-xs font-semibold text-text-secondary">
+                                            Versão #{v.version_number}
+                                        </p>
+                                        <p className="text-[11px] text-text-tertiary mt-0.5">
+                                            {new Date(v.created_at).toLocaleDateString("pt-BR", {
+                                                day: "2-digit",
+                                                month: "short",
+                                                year: "numeric",
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                            })}
+                                        </p>
+                                        <button
+                                            onClick={() => handleRestoreVersion(v)}
+                                            className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-semibold"
+                                        >
+                                            Restaurar versão
+                                        </button>
+                                    </div>
+                                ))
                             )}
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }

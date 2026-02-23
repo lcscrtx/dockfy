@@ -1,202 +1,260 @@
-import { useEffect, useMemo } from 'react';
-import { schemaRegistry } from '../config/schemas';
-import { useWizardStore } from '../store/wizardStore';
-import { useDocumentStore } from '../store/documentStore';
-import { DynamicField } from '../components/DynamicField';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
-import { useForm, FormProvider } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { buildZodSchema } from '../lib/zodBuilder';
-import { motion, AnimatePresence } from 'framer-motion';
-import { generateDocumentMarkdown } from '../lib/documentGenerator';
-import { PersonaSelector } from '../components/PersonaSelector';
-import { ImovelSelector } from '../components/ImovelSelector';
+import { useEffect, useMemo } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useWizardStore } from "../store/wizardStore";
+import { useDocumentStore } from "../store/documentStore";
+import { schemaRegistry } from "../config/schemas";
+import { useTemplateStore } from "../store/templateStore";
+import { DynamicField } from "../components/DynamicField";
+import { generateDocumentMarkdown } from "../lib/documentGenerator";
+import { ArrowLeft, ArrowRight, Loader2, Check } from "lucide-react";
+import type { SchemaField } from "../types/schema";
 
 export function Wizard() {
-    const { templateId } = useParams<{ templateId: string }>();
-    const navigate = useNavigate();
+  const { schemaId } = useParams<{ schemaId: string }>();
+  const [searchParams] = useSearchParams();
+  const templateId = searchParams.get("templateId");
+  const navigate = useNavigate();
 
-    const { currentStepIndex, formData, setFormData, nextStep, prevStep, reset, setSchemaId, schemaId } = useWizardStore();
-    const addDocument = useDocumentStore((s) => s.addDocument);
+  const { currentStepIndex, formData, nextStep, prevStep, setFormData, reset } = useWizardStore();
+  const { addDocument } = useDocumentStore();
+  const { customTemplates, fetchTemplates } = useTemplateStore();
 
-    const schema = schemaRegistry[templateId || schemaId] || schemaRegistry['locacao_residencial'];
+  useEffect(() => {
+    reset();
+    if (schemaId === "custom") fetchTemplates();
+  }, [schemaId, reset, fetchTemplates]);
 
-    useEffect(() => {
-        if (templateId) {
-            setSchemaId(templateId);
-            reset();
-        }
-    }, [templateId, setSchemaId, reset]);
+  const isCustom = schemaId === "custom";
+  const customTemplate = customTemplates.find((t) => t.id === templateId);
+  const schema = !isCustom && schemaId ? schemaRegistry[schemaId] : null;
 
-    const totalSteps = schema.steps.length;
-    const currentStepIndexSafe = Math.min(currentStepIndex, Math.max(0, totalSteps - 1));
-    const currentStep = schema.steps[currentStepIndexSafe] || schema.steps[0];
+  const customFields = useMemo(() => {
+    if (!isCustom || !customTemplate?.markdown_template) return [];
+    const storedFields = customTemplate.fields_schema ?? [];
+    if (storedFields.length > 0) {
+      return storedFields.map((id: string) => ({
+        id,
+        label: id.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
+        type: "text" as const,
+        required: true,
+      }));
+    }
 
-    const stepZodSchema = useMemo(() => buildZodSchema(currentStep.fields), [currentStep]);
+    const matches = customTemplate.markdown_template.match(/\{\{([^}]+)\}\}/g) || [];
+    const unique = [
+      ...new Set(
+        matches.map((m: string) => m.replace(/\{\{|\}\}/g, "").trim()),
+      ),
+    ] as string[];
+    return unique.map((id: string) => ({
+      id,
+      label: id.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
+      type: "text" as const,
+      required: true,
+    }));
+  }, [isCustom, customTemplate]);
 
-    const methods = useForm({
-        resolver: zodResolver(stepZodSchema),
-        defaultValues: formData,
-        mode: 'onTouched'
+  const steps = schema
+    ? schema.steps
+    : customFields.length > 0
+      ? [{ title: customTemplate?.title || "Preencher campos", fields: customFields }]
+      : [];
+
+  const currentStep = steps[currentStepIndex];
+  const totalSteps = steps.length;
+  const progress = totalSteps > 0 ? ((currentStepIndex + 1) / totalSteps) * 100 : 0;
+
+  const isFieldValid = (field: SchemaField, value: string | undefined) => {
+    const val = (value ?? "").trim();
+    if (field.required && !val) return false;
+    if (!val) return true;
+
+    if (field.type === "number") {
+      const parsed = Number(val);
+      return Number.isFinite(parsed);
+    }
+
+    if (field.type === "email") {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+    }
+
+    if (field.type === "date") {
+      return !Number.isNaN(Date.parse(val));
+    }
+
+    if (field.id.includes("cpf_cnpj")) {
+      const digits = val.replace(/\D/g, "");
+      return digits.length === 11 || digits.length === 14;
+    }
+    if (field.id.includes("cpf")) {
+      return val.replace(/\D/g, "").length === 11;
+    }
+    if (field.id.includes("cnpj")) {
+      return val.replace(/\D/g, "").length === 14;
+    }
+
+    return true;
+  };
+
+  const isStepValid = () => {
+    if (!currentStep) return false;
+    return currentStep.fields.every((field) =>
+      isFieldValid(field, formData[field.id]),
+    );
+  };
+
+  const handleFinish = async () => {
+    const title = schema?.title || customTemplate?.title || "Documento";
+    const docId = `DOC-${Date.now().toString().slice(-6)}`;
+
+    let markdown_content = "";
+    if (isCustom && customTemplate?.markdown_template) {
+      markdown_content = customTemplate.markdown_template.replace(
+        /\{\{\s*([^}]+)\s*\}\}/g,
+        (_match: string, key: string) => formData[key.trim()] || `{{${key.trim()}}}`,
+      );
+    } else if (schemaId) {
+      markdown_content = generateDocumentMarkdown(schemaId, formData);
+    }
+
+    const parteName =
+      formData.comprador_nome ||
+      formData.locatario_nome ||
+      formData.proponente_nome ||
+      formData.vendedor_nome ||
+      docId;
+
+    await addDocument({
+      id: docId,
+      title: `${title} - ${parteName}`,
+      schema_id: schemaId || "custom",
+      type: schema?.title || customTemplate?.title || "Documento",
+      status: "gerado",
+      value: "-",
+      markdown_content,
+      form_data: formData,
     });
 
-    const { handleSubmit, reset: resetForm, setValue } = methods;
+    reset();
+    navigate("/");
+  };
 
-    useEffect(() => {
-        resetForm(formData);
-    }, [currentStepIndex, resetForm, formData]);
-
-    useEffect(() => {
-        if (currentStepIndex === 0 && Object.keys(formData).length === 0) {
-            reset();
-        }
-    }, []);
-
-    const onValidNext = async (raw: Record<string, unknown>) => {
-        const data = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, String(v ?? '')]));
-        const currentData = { ...formData, ...data };
-
-        Object.entries(data).forEach(([key, value]) => {
-            setFormData(key, value);
-        });
-
-        if (currentStepIndex === totalSteps - 1) {
-            const markdownText = generateDocumentMarkdown(schemaId, currentData);
-            useWizardStore.getState().setGeneratedDocument(markdownText);
-
-            const newDocId = `DOC-${Math.floor(Math.random() * 9000) + 1000}`;
-
-            const valueField = currentData['valor_aluguel'] || currentData['valor_total'] || currentData['valor_ofertado'] || currentData['valor_pago'] || currentData['valor_venda'] || '';
-            const valueDisplay = valueField ? `R$ ${valueField}` : '-';
-            const typeLabel = schema.title.split(' ').slice(0, 2).join(' ');
-
-            // Save to Supabase
-            await addDocument({
-                id: newDocId,
-                schema_id: schemaId,
-                title: `${schema.title} - ${currentData['locador_nome'] || currentData['vendedor_nome'] || currentData['proprietario_nome'] || currentData['recebedor_nome'] || currentData['dados_proponente'] || 'Cliente'}`,
-                type: typeLabel,
-                status: 'gerado',
-                value: valueDisplay,
-                markdown_content: markdownText,
-                form_data: currentData,
-            });
-
-            navigate(`/document/${newDocId}`);
-        } else {
-            nextStep(totalSteps);
-        }
-    };
-
-    const progressPercentage = ((currentStepIndex + 1) / totalSteps) * 100;
-
-    return (
-        <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center pt-10 pb-20 px-4">
-            <div className="w-full max-w-3xl mb-8">
-                <button
-                    onClick={() => navigate('/')}
-                    className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors mb-6 flex items-center gap-1"
-                >
-                    <ChevronLeft className="w-4 h-4" />
-                    Voltar ao Início
-                </button>
-                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{schema.title}</h1>
-                <p className="text-slate-500 mt-1">{schema.description}</p>
-            </div>
-
-            <div className="w-full max-w-3xl bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6">
-                <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-semibold text-slate-500">
-                        Passo {currentStepIndex + 1} de {totalSteps}
-                    </span>
-                    <span className="text-sm font-semibold text-slate-900">
-                        {Math.round(progressPercentage)}% concluído
-                    </span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                    <div
-                        className="bg-slate-900 h-2.5 rounded-full transition-all duration-500 ease-out"
-                        style={{ width: `${progressPercentage}%` }}
-                    ></div>
-                </div>
-            </div>
-
-            <div className="w-full max-w-3xl bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="p-8 border-b border-slate-100 bg-slate-50/50">
-                    <h2 className="text-2xl font-bold text-slate-900">{currentStep.title}</h2>
-                    {currentStep.description && (
-                        <p className="text-slate-500 mt-1">{currentStep.description}</p>
-                    )}
-                </div>
-
-                <FormProvider {...methods}>
-                    <form onSubmit={handleSubmit(onValidNext)} className="p-8">
-                        {/* Persona Selector — auto-fills person fields */}
-                        <PersonaSelector
-                            stepFields={currentStep.fields}
-                            onFillFields={(fieldValues) => {
-                                Object.entries(fieldValues).forEach(([key, value]) => {
-                                    setValue(key, value, { shouldValidate: true });
-                                    setFormData(key, value);
-                                });
-                            }}
-                        />
-
-                        {/* Imovel Selector — auto-fills property fields */}
-                        <ImovelSelector
-                            stepFields={currentStep.fields}
-                            onFillFields={(fieldValues) => {
-                                Object.entries(fieldValues).forEach(([key, value]) => {
-                                    setValue(key, value, { shouldValidate: true });
-                                    setFormData(key, value);
-                                });
-                            }}
-                        />
-
-                        <div className="overflow-hidden">
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={currentStepIndex}
-                                    initial={{ x: 20, opacity: 0 }}
-                                    animate={{ x: 0, opacity: 1 }}
-                                    exit={{ x: -20, opacity: 0 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="grid grid-cols-1 gap-4"
-                                >
-                                    {currentStep.fields.map((field) => (
-                                        <DynamicField key={field.id} field={field} />
-                                    ))}
-                                </motion.div>
-                            </AnimatePresence>
-                        </div>
-
-                        <div className="mt-10 flex justify-between items-center pt-6 border-t border-slate-100">
-                            <button
-                                type="button"
-                                onClick={prevStep}
-                                disabled={currentStepIndex === 0}
-                                className={`px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2
-                  ${currentStepIndex === 0
-                                        ? 'text-slate-300 cursor-not-allowed bg-slate-50'
-                                        : 'text-slate-600 hover:bg-slate-100 bg-white border border-slate-200 shadow-sm'}`}
-                            >
-                                Voltar
-                            </button>
-                            <button
-                                type="submit"
-                                className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-lg font-medium transition-all shadow-sm active:scale-[0.98] flex items-center gap-2"
-                            >
-                                {currentStepIndex === totalSteps - 1 ? (
-                                    <>Finalizar Documento <CheckCircle2 className="w-4 h-4 ml-1" /></>
-                                ) : (
-                                    <>Próximo Passo <ChevronRight className="w-4 h-4 ml-1" /></>
-                                )}
-                            </button>
-                        </div>
-                    </form>
-                </FormProvider>
-            </div>
+  if (!schema && !isCustom) {
+    if (!schemaId) {
+      return (
+        <div className="flex items-center justify-center h-full text-text-tertiary">
+          Selecione um modelo para iniciar o preenchimento.
         </div>
+      );
+    }
+    return (
+      <div className="flex items-center justify-center h-full text-text-tertiary">
+        Modelo não encontrado.
+      </div>
     );
+  }
+
+  if (isCustom && !customTemplate) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 size={24} className="text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-canvas flex flex-col items-center">
+      {/* Top Progress Header */}
+      <div className="w-full bg-white/92 backdrop-blur border-b border-base sticky top-0 z-20">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 min-h-16 py-3 flex items-center justify-between gap-2">
+          <button
+            onClick={() => navigate(-1)}
+            className="btn-ghost px-2"
+          >
+            <ArrowLeft size={16} strokeWidth={2.5} />
+            Voltar
+          </button>
+
+          <div className="flex items-center gap-4 flex-1 justify-center">
+            <h1 className="text-[15px] font-bold text-text-primary text-center">
+              {schema?.title || customTemplate?.title}
+            </h1>
+            <span className="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full tracking-wider uppercase border border-blue-100">
+              Etapa {currentStepIndex + 1} de {totalSteps}
+            </span>
+          </div>
+
+          <div className="w-24" />
+        </div>
+
+        <div className="h-0.5 w-full bg-slate-100">
+          <div
+            className="h-full bg-blue-600 transition-all duration-500 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Form */}
+      <div className="w-full max-w-2xl px-4 sm:px-6 py-8 sm:py-12 flex-1 flex flex-col">
+        {currentStep && (
+          <div className="surface-card rounded-2xl p-6 sm:p-8 flex-1">
+            <div className="mb-8 border-b border-base pb-6">
+              <h2 className="text-xl font-bold text-text-primary">{currentStep.title}</h2>
+              <p className="text-sm text-text-tertiary mt-2">
+                Preencha os campos abaixo com atenção. Eles comporão o documento final.
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              {currentStep.fields.map((field: SchemaField) => (
+                <DynamicField
+                  key={field.id}
+                  field={field}
+                  value={formData[field.id] || ""}
+                  onChange={(val) => setFormData(field.id, val as string)}
+                  onAutoFill={(data) => {
+                    Object.entries(data).forEach(([k, v]) =>
+                      setFormData(k, v as string),
+                    );
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center justify-between mt-8 w-full">
+          <button
+            onClick={() => prevStep()}
+            disabled={currentStepIndex === 0}
+            className="btn-secondary px-6 py-3 disabled:opacity-50 disabled:pointer-events-none"
+          >
+            Etapa Anterior
+          </button>
+
+          {currentStepIndex < totalSteps - 1 ? (
+            <button
+              onClick={() => nextStep(totalSteps)}
+              disabled={!isStepValid()}
+              className="btn-primary px-8 py-3 font-bold disabled:opacity-50"
+            >
+              Próxima Etapa
+              <ArrowRight size={16} strokeWidth={2.5} />
+            </button>
+          ) : (
+            <button
+              onClick={handleFinish}
+              disabled={!isStepValid()}
+              className="btn-primary px-8 py-3 font-bold disabled:opacity-50"
+            >
+              <Check size={18} strokeWidth={3} />
+              Finalizar e Gerar Documento
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -1,18 +1,12 @@
-import { useNavigate } from 'react-router-dom';
-import { X, Home, Briefcase, FileSignature, FileText, Building2, Wallet, FileCheck2, Handshake } from 'lucide-react';
-import { schemaRegistry } from '../config/schemas';
-import type { ReactNode } from 'react';
-
-const templateIcons: Record<string, ReactNode> = {
-    compra_venda_imovel: <Home className="w-5 h-5" />,
-    locacao_residencial: <Building2 className="w-5 h-5" />,
-    locacao_comercial: <Briefcase className="w-5 h-5" />,
-    proposta_compra: <Handshake className="w-5 h-5" />,
-    autorizacao_venda: <FileSignature className="w-5 h-5" />,
-    recibo_sinal: <Wallet className="w-5 h-5" />,
-    termo_vistoria: <FileCheck2 className="w-5 h-5" />,
-    admin_imobiliaria: <FileText className="w-5 h-5" />,
-};
+import { useNavigate } from "react-router-dom";
+import {
+    XMarkIcon,
+    DocumentTextIcon,
+    ArrowRightIcon,
+} from "@heroicons/react/24/outline";
+import { schemaRegistry } from "../config/schemas";
+import { useTemplateStore } from "../store/templateStore";
+import { useEffect } from "react";
 
 interface TemplateSelectorModalProps {
     taskTitle: string;
@@ -20,57 +14,106 @@ interface TemplateSelectorModalProps {
     onClose: () => void;
 }
 
-export function TemplateSelectorModal({ taskTitle, taskId, onClose }: TemplateSelectorModalProps) {
+export function TemplateSelectorModal({
+    taskTitle,
+    taskId,
+    onClose,
+}: TemplateSelectorModalProps) {
     const navigate = useNavigate();
-    const templates = Object.values(schemaRegistry);
+    const { customTemplates, fetchTemplates } = useTemplateStore();
 
-    const handleSelect = (templateId: string) => {
-        // Navigate to wizard with task context in state
-        navigate(`/wizard/${templateId}`, {
-            state: { fromTaskId: taskId, taskTitle },
-        });
+    useEffect(() => {
+        fetchTemplates();
+    }, [fetchTemplates]);
+
+    const builtinSchemas = Object.values(schemaRegistry);
+
+    const handleSelectBuiltin = (schemaId: string) => {
+        navigate(`/wizard/${schemaId}?task=${taskId}`);
+        onClose();
+    };
+
+    const handleSelectCustom = (templateId: string) => {
+        navigate(`/wizard/custom?templateId=${templateId}&task=${taskId}`);
+        onClose();
     };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-
-            {/* Modal */}
-            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col animate-in fade-in zoom-in-95">
-                {/* Header */}
-                <div className="px-6 py-5 border-b border-slate-200 flex items-start justify-between">
+            <div
+                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                onClick={onClose}
+            />
+            <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden border border-base">
+                <div className="px-6 py-4 border-b border-base flex items-center justify-between">
                     <div>
-                        <h2 className="text-lg font-bold text-slate-900">Converter em documento</h2>
-                        <p className="text-sm text-slate-500 mt-0.5">
-                            Escolha o modelo para: <span className="font-medium text-slate-700">"{taskTitle}"</span>
+                        <h2 className="text-lg font-semibold text-text-primary">
+                            Gerar Documento para Tarefa
+                        </h2>
+                        <p className="text-xs text-text-tertiary mt-0.5 truncate">
+                            Tarefa: {taskTitle}
                         </p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors -mt-1"
+                        className="btn-icon"
                     >
-                        <X className="w-5 h-5" />
+                        <XMarkIcon className="w-5 h-5" />
                     </button>
                 </div>
 
-                {/* Template Grid */}
-                <div className="p-4 overflow-y-auto flex-1">
-                    <div className="grid grid-cols-2 gap-3">
-                        {templates.map((template) => (
-                            <button
-                                key={template.id}
-                                onClick={() => handleSelect(template.id)}
-                                className="group flex flex-col p-4 bg-white border border-slate-200 rounded-xl hover:border-blue-500 hover:shadow-md transition-all text-left"
-                            >
-                                <span className="p-2 bg-blue-50 rounded-lg text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors w-fit mb-3">
-                                    {templateIcons[template.id] || <FileText className="w-5 h-5" />}
-                                </span>
-                                <h4 className="text-sm font-semibold text-slate-900 mb-1 line-clamp-2">{template.title}</h4>
-                                <p className="text-xs text-slate-400 line-clamp-2">{template.description}</p>
-                            </button>
-                        ))}
-                    </div>
+                <div className="px-6 py-4 max-h-[60vh] overflow-y-auto space-y-3">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                        Templates base
+                    </p>
+                    {builtinSchemas.map((schema) => (
+                        <button
+                            key={schema.id}
+                            onClick={() => handleSelectBuiltin(schema.id)}
+                            className="w-full flex items-center gap-4 p-4 rounded-lg border border-base hover:border-blue-400 hover:bg-blue-50/40 text-left transition-all group"
+                        >
+                            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center border border-blue-100 flex-shrink-0 shadow-low">
+                                <DocumentTextIcon className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-text-primary group-hover:text-blue-700 transition-colors">
+                                    {schema.title}
+                                </p>
+                                <p className="text-xs text-text-tertiary line-clamp-1">
+                                    {schema.description}
+                                </p>
+                            </div>
+                            <ArrowRightIcon className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors flex-shrink-0" />
+                        </button>
+                    ))}
+
+                    {customTemplates.length > 0 && (
+                        <>
+                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider pt-3">
+                                Meus modelos
+                            </p>
+                            {customTemplates.map((tmpl) => (
+                                <button
+                                    key={tmpl.id}
+                                    onClick={() => handleSelectCustom(tmpl.id)}
+                                    className="w-full flex items-center gap-4 p-4 rounded-lg border border-base hover:border-blue-400 hover:bg-blue-50/40 text-left transition-all group"
+                                >
+                                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center border border-blue-100 flex-shrink-0 shadow-low">
+                                        <DocumentTextIcon className="w-5 h-5 text-blue-600" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-text-primary group-hover:text-blue-700 transition-colors">
+                                            {tmpl.title}
+                                        </p>
+                                        <p className="text-xs text-text-tertiary line-clamp-1">
+                                            {tmpl.description || "Modelo personalizado"}
+                                        </p>
+                                    </div>
+                                    <ArrowRightIcon className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors flex-shrink-0" />
+                                </button>
+                            ))}
+                        </>
+                    )}
                 </div>
             </div>
         </div>

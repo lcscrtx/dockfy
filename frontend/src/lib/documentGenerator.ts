@@ -2,33 +2,49 @@
 // The engine replaces `{{ key }}` with the value from the form data.
 
 const templatesRegistry: Record<string, string> = {
-    compra_venda_imovel: `
+  compra_venda_imovel: `
 # INSTRUMENTO PARTICULAR DE COMPRA E VENDA DE IMÓVEL
 
-Pelo presente instrumento particular, de um lado, **{{ vendedor_nome }}**, {{ vendedor_estado_civil }}, {{ vendedor_profissao }}, portador do RG nº **{{ vendedor_rg }}** e CPF/CNPJ nº **{{ vendedor_cpf_cnpj }}**, residente e domiciliado em **{{ vendedor_endereco }}** (doravante denominado(a) **VENDEDOR(A)**);
+Pelo presente instrumento particular, de um lado, **{{ vendedor_nome }}**, {{ vendedor_estado_civil }}, profissão **{{ vendedor_profissao }}**, portador do RG nº **{{ vendedor_rg }}** e CPF/CNPJ nº **{{ vendedor_cpf_cnpj }}**, sob regime de bens **{{ vendedor_regime_bens }}**, residente e domiciliado em **{{ vendedor_endereco }}** (doravante denominado(a) **VENDEDOR(A)**);
 
-E, de outro lado, **{{ comprador_nome }}**, {{ comprador_estado_civil }}, {{ comprador_profissao }}, portador do RG nº **{{ comprador_rg }}** e CPF nº **{{ comprador_cpf }}**, residente e domiciliado em **{{ comprador_endereco }}** (doravante denominado(a) **COMPRADOR(A)**);
+E, de outro lado, **{{ comprador_nome }}**, {{ comprador_estado_civil }}, profissão **{{ comprador_profissao }}**, portador do RG nº **{{ comprador_rg }}** e CPF nº **{{ comprador_cpf }}**, sob regime de bens **{{ comprador_regime_bens }}**, residente e domiciliado em **{{ comprador_endereco }}** (doravante denominado(a) **COMPRADOR(A)**).
 
-### CLÁUSULA 1ª - DO OBJETO E IMÓVEL
-O **VENDEDOR** é legítimo proprietário do imóvel correspondente a um/uma **{{ imovel_tipo }}**, com área total de **{{ imovel_area }}** m², situado em **{{ imovel_endereco }}**. 
-O imóvel encontra-se matriculado sob o nº **{{ imovel_matricula }}** no **{{ imovel_cartorio }}**. Inscrição municipal (IPTU): **{{ imovel_iptu }}**. Possui direito a **{{ imovel_vagas }}** vaga(s) de garagem.
+As partes têm entre si justo e contratado a compra e venda do imóvel descrito nas cláusulas abaixo.
 
-### CLÁUSULA 2ª - DO PREÇO E CONDIÇÕES DE PAGAMENTO
-O preço certo e ajustado da presente compra e venda é de **R$ {{ valor_total }}**.
+### CLÁUSULA 1ª - DO OBJETO
+Constitui objeto deste contrato o imóvel do tipo **{{ imovel_tipo }}**, com área total de **{{ imovel_area }} m²**, localizado em **{{ imovel_endereco }}**, matriculado sob nº **{{ imovel_matricula }}** junto ao **{{ imovel_cartorio }}**, inscrição imobiliária (IPTU) nº **{{ imovel_iptu }}**, com **{{ imovel_vagas }}** vaga(s) de garagem.
 
-1. **Sinal/Arras**: R$ **{{ valor_sinal }}** como sinal e princípio de pagamento.
-2. **Saldo Remanescente e Forma**: **{{ forma_pagamento }}**.
-3. **Detalhes das Parcelas**: **{{ parcelas_obs }}**
+### CLÁUSULA 2ª - DO PREÇO E DA FORMA DE PAGAMENTO
+O preço certo e ajustado para a presente transação é de **{{ valor_total }}**, a ser pago da seguinte forma:
+1. **Sinal/arras**: **{{ valor_sinal }}**, pago na assinatura deste instrumento.
+2. **Saldo remanescente**: conforme modalidade **{{ forma_pagamento }}**.
+3. **Detalhamento complementar**: **{{ parcelas_obs }}**.
 
-### CLÁUSULA 3ª - DA POSSE E TRANSFERÊNCIA
-A posse precária do imóvel será transferida ao **COMPRADOR** na seguinte previsão: **{{ data_posse }}**.
-Fica ajustado que o responsável pelas despesas de transferência, registro e ITBI será o(a) **{{ resp_itbi }}**.
+### CLÁUSULA 3ª - DAS DECLARAÇÕES DO VENDEDOR
+O **VENDEDOR** declara, sob as penas da lei, que:
+1. É legítimo proprietário do imóvel objeto deste contrato.
+2. O imóvel será transferido livre de ônus não informados ao **COMPRADOR**.
+3. Entregará a documentação necessária para a escritura e registro.
 
-### CLÁUSULA 4ª - DAS PENALIDADES E DESISTÊNCIA
-Em caso de desistência ou arrependimento por qualquer das partes, haverá a aplicação de multa compensatória no valor de **{{ multa_desistencia }}%** sobre o valor total do contrato.
+### CLÁUSULA 4ª - DA POSSE, ENTREGA E TRANSFERÊNCIA
+A imissão na posse do imóvel ocorrerá em **{{ data_posse }}**, observada a quitação dos valores pactuados e o cumprimento das obrigações documentais pelas partes.
 
-### CLÁUSULA 5ª - DO FORO DE ELEIÇÃO
-Para dirimir quaisquer dúvidas oriundas deste contrato, as partes elegem o foro de **{{ foro }}**, renunciando a qualquer outro por mais privilegiado que seja.
+### CLÁUSULA 5ª - DOS TRIBUTOS, DESPESAS E EMOLUMENTOS
+As despesas relativas a ITBI, escritura, registro e demais custos cartorários serão de responsabilidade do(a) **{{ resp_itbi }}**, salvo ajuste escrito em sentido diverso.
+
+### CLÁUSULA 6ª - DO INADIMPLEMENTO
+No caso de inadimplemento de qualquer obrigação contratual, a parte inadimplente responderá por perdas e danos, correção monetária, juros legais e demais encargos cabíveis.
+
+### CLÁUSULA 7ª - DA DESISTÊNCIA E MULTA COMPENSATÓRIA
+Se houver desistência imotivada de qualquer das partes após a assinatura deste instrumento, incidirá multa compensatória de **{{ multa_desistencia }}%** sobre o valor total do contrato, sem prejuízo de indenização complementar, quando cabível.
+
+### CLÁUSULA 8ª - DAS DISPOSIÇÕES GERAIS
+1. Qualquer alteração deste contrato deverá ser formalizada por escrito e assinada pelas partes.
+2. A eventual tolerância quanto ao descumprimento de cláusulas não importará novação ou renúncia de direitos.
+3. Este contrato obriga as partes e seus sucessores a qualquer título.
+
+### CLÁUSULA 9ª - DO FORO
+Para dirimir quaisquer dúvidas oriundas deste contrato, as partes elegem o foro da comarca de **{{ foro }}**, com renúncia expressa de qualquer outro, por mais privilegiado que seja.
 
 E por estarem assim justos e contratados, assinam o presente contrato em 02 (duas) vias de igual teor e forma.
 
@@ -65,32 +81,55 @@ ___________________________________________________
 CPF:
 `,
 
-    locacao_residencial: `
+  locacao_residencial: `
 # CONTRATO DE LOCAÇÃO RESIDENCIAL
 
-Pelo presente instrumento particular, as partes abaixo qualificadas celebram o presente contrato de locação de imóvel residencial, com base na Lei do Inquilinato (Lei nº 8.245/1991):
+Pelo presente instrumento particular, as partes abaixo qualificadas celebram o presente contrato de locação residencial, regido pela Lei nº 8.245/1991 (Lei do Inquilinato), Código Civil e demais normas aplicáveis.
 
 **LOCADOR(A):** **{{ locador_nome }}**, portador do CPF/CNPJ nº **{{ locador_cpf_cnpj }}**, {{ locador_estado_civil }}, residente e domiciliado/sede em **{{ locador_endereco }}**.
 
 **LOCATÁRIO(A):** **{{ locatario_nome }}**, portador do CPF nº **{{ locatario_cpf }}**, {{ locatario_estado_civil }}, residente e domiciliado em **{{ locatario_endereco }}**.
 
-### CLÁUSULA 1ª - DO IMÓVEL E FINALIDADE
-O **LOCADOR** dá em locação ao **LOCATÁRIO** o imóvel de sua propriedade restrito à modalidade **{{ imovel_tipo }}**, situado à **{{ imovel_endereco }}**. A finalidade desta locação é estritamente **{{ imovel_finalidade }}**. 
+### CLÁUSULA 1ª - DO OBJETO E DA FINALIDADE
+O **LOCADOR** dá em locação ao **LOCATÁRIO** o imóvel do tipo **{{ imovel_tipo }}**, localizado em **{{ imovel_endereco }}**, para uso **{{ imovel_finalidade }}**, sendo vedada a alteração de destinação sem autorização expressa e escrita do **LOCADOR**.
 
-### CLÁUSULA 2ª - DO VALOR, PRAZO E REAJUSTE
-O valor do aluguel mensal fica ajustado em **R$ {{ valor_aluguel }}**, com vigência a partir de **{{ data_inicio }}** e prazo total estipulado em **{{ prazo_meses }} meses**.
-O reajuste do aluguel, caso o contrato seja renovado tacitamente ou por aditivo, será calculado anualmente com base no acumulado do índice **{{ indice_reajuste }}**.
+### CLÁUSULA 2ª - DO PRAZO DE LOCAÇÃO
+A locação inicia-se em **{{ data_inicio }}** e vigorará por **{{ prazo_meses }} meses**, encerrando-se automaticamente ao final do prazo, salvo prorrogação formal ou tácita na forma da legislação.
 
-### CLÁUSULA 3ª - DAS GARANTIAS LOCATÍCIAS
-Como garantia fiel das obrigações financeiras e acessórias assumidas neste instrumento, o **LOCATÁRIO** apresenta o modelo de: **{{ tipo_garantia }}**.
+### CLÁUSULA 3ª - DO ALUGUEL E DO PAGAMENTO
+O aluguel mensal é fixado em **{{ valor_aluguel }}**, devendo ser pago até o dia 05 de cada mês, por meio ajustado entre as partes, sendo considerado quitado após confirmação do crédito.
 
-### CLÁUSULA 4ª - DA MULTA RESCISÓRIA
-No caso de devolução do imóvel ou rescisão antecipada motivada por quebra de contrato, incidirá a multa estipulada equivalente a **{{ valor_multa }} aluguéis vigentes**, devidos e calculados proporcionalmente ao tempo não cumprido do contrato estipulado na Cláusula 2ª.
+### CLÁUSULA 4ª - DO REAJUSTE
+O valor do aluguel será reajustado a cada 12 (doze) meses, contado do início da locação, pelo índice **{{ indice_reajuste }}** ou por outro que venha a substituí-lo legalmente.
 
-### CLÁUSULA 5ª - DO FORO
-Para dirimir quaisquer demandas ou litígios oriundos deste Contrato de Locação, as partes elegem o foro da comarca de **{{ foro }}**.
+### CLÁUSULA 5ª - DOS ENCARGOS DA LOCAÇÃO
+São de responsabilidade do **LOCATÁRIO** os encargos ordinários de uso e fruição do imóvel, incluindo consumo de água, energia elétrica, gás, condomínio ordinário e demais despesas correlatas, salvo disposição legal em contrário.
 
-E por estarem assim justos e contratados, assinam o presente instrumento.
+### CLÁUSULA 6ª - DA GARANTIA LOCATÍCIA
+Para garantia do cumprimento das obrigações contratuais, o **LOCATÁRIO** apresenta a modalidade **{{ tipo_garantia }}**, que deverá permanecer válida durante toda a vigência da locação.
+
+### CLÁUSULA 7ª - DA CONSERVAÇÃO E VISTORIA
+O **LOCATÁRIO** declara receber o imóvel em condições de uso, comprometendo-se a conservá-lo, restituí-lo ao final da locação no estado em que o recebeu, ressalvado desgaste natural, e permitir vistoria prévia mediante aviso razoável.
+
+### CLÁUSULA 8ª - DAS BENFEITORIAS
+Benfeitorias úteis ou voluptuárias realizadas sem autorização expressa do **LOCADOR** não serão indenizáveis, nem conferirão direito de retenção, ressalvadas as hipóteses legais de benfeitorias necessárias.
+
+### CLÁUSULA 9ª - DAS VEDAÇÕES
+É vedado ao **LOCATÁRIO** ceder, sublocar, emprestar ou transferir, total ou parcialmente, os direitos deste contrato sem autorização prévia e escrita do **LOCADOR**.
+
+### CLÁUSULA 10ª - DA MORA E INADIMPLEMENTO
+O atraso no pagamento de aluguel ou encargos autoriza a cobrança de multa moratória, juros e correção monetária na forma da lei, sem prejuízo das medidas judiciais cabíveis.
+
+### CLÁUSULA 11ª - DA RESCISÃO ANTECIPADA
+Na hipótese de rescisão antecipada imotivada pelo **LOCATÁRIO**, incidirá multa equivalente a **{{ valor_multa }} aluguéis**, calculada proporcionalmente ao período contratual não cumprido.
+
+### CLÁUSULA 12ª - DA DEVOLUÇÃO DO IMÓVEL
+Encerrada a locação, o imóvel deverá ser desocupado e devolvido ao **LOCADOR** livre de pessoas e bens, com quitação de encargos e entrega das chaves, observadas as condições pactuadas.
+
+### CLÁUSULA 13ª - DO FORO
+Para dirimir quaisquer controvérsias decorrentes deste contrato, as partes elegem o foro da comarca de **{{ foro }}**, com renúncia de qualquer outro, por mais privilegiado que seja.
+
+E por estarem justos e contratados, assinam o presente instrumento em 02 (duas) vias de igual teor e forma.
 
 <br/>
 <br/>
@@ -109,52 +148,67 @@ ___________________________________________________
 Locatário(a)
 `,
 
-    locacao_comercial: `
+  locacao_comercial: `
 # CONTRATO DE LOCAÇÃO NÃO RESIDENCIAL (COMERCIAL)
 
 **LOCADOR(A):** **{{ locador_dados_completos }}**
 
 **LOCATÁRIO(A):** **{{ locatario_dados_completos }}**
 
-### CLÁUSULA 1ª - DO OBJETO E CARACTERÍSTICAS
-O presente contrato tem como objeto o imóvel de formato **{{ imovel_tipo }}**, com área útil e locável estipulada de **{{ imovel_area }}**m², situado no endereço **{{ imovel_endereco }}**.
+As partes acima identificadas celebram o presente contrato de locação comercial, com fundamento na Lei nº 8.245/1991 e demais normas aplicáveis.
 
-**Destinação e Atividade Comercial:** O imóvel supracitado será utilizado primordialmente para **{{ destinacao_comercial }}**, sendo a atividade exata a ser exercida legalmente correspondente a: **{{ atividade_exercida }}**.
+### CLÁUSULA 1ª - DO OBJETO
+Constitui objeto deste contrato a locação do imóvel comercial do tipo **{{ imovel_tipo }}**, com área aproximada de **{{ imovel_area }} m²**, situado em **{{ imovel_endereco }}**.
 
-### CLÁUSULA 2ª - DO ALUGUEL, PRAZO MENSAL E ÍNDICES
-O **LOCATÁRIO** pagará mensalmente, a título de aluguel pleno, o valor de **R$ {{ valor_aluguel }}**.
-O prazo inquestionável desta locação comercial é de **{{ prazo_meses }} meses**. 
-Índice de reajuste econômico anual acordado entre as partes: **{{ indice_reajuste }}**.
+### CLÁUSULA 2ª - DA DESTINAÇÃO COMERCIAL
+O imóvel será utilizado para **{{ destinacao_comercial }}**, com atividade principal descrita como **{{ atividade_exercida }}**, sendo vedada alteração de ramo sem anuência prévia e escrita do **LOCADOR**.
 
-### CLÁUSULA 3ª - DE SEGUROS E PROTEÇÃO PATRIMONIAL DO PONTO
-Conforme acordado preliminarmente, a garantia prestada é: **{{ garantia }}**.
-Obrigação expressa sobre a contratação de Seguro contra Incêndio e Sinistros: **{{ seguro_obrigatorio }}**.
+### CLÁUSULA 3ª - DO PRAZO
+O prazo de vigência da locação é de **{{ prazo_meses }} meses**, iniciando-se na data de assinatura ou entrega das chaves, o que ocorrer por último, podendo ser renovado por termo aditivo.
 
-### CLÁUSULA 4ª - DA RENOVAÇÃO E RESCISÃO ANTECIPADA
-Regras definidas para Cláusula de Renovação: **{{ clausula_renovacao }}**.
-Penalidade estipulada para Rescisão e Multas Antecipadas: **{{ multa }}**.
+### CLÁUSULA 4ª - DO ALUGUEL E ENCARGOS
+O aluguel mensal será de **{{ valor_aluguel }}**, com pagamento na forma ajustada entre as partes.
+São de responsabilidade do **LOCATÁRIO** os encargos incidentes sobre o uso do imóvel, incluindo consumos, condomínio ordinário, taxas operacionais e tributos que a lei lhe atribuir.
 
-### CLÁUSULA 5ª - DO FORO DE ELEIÇÃO
-Fica eleito o Foro da Comarca de **{{ foro }}** para processamento de litígios.
+### CLÁUSULA 5ª - DO REAJUSTE
+O aluguel será reajustado anualmente com base no índice **{{ indice_reajuste }}**, ou no índice substituto legalmente aplicável.
 
-E por estarem em perfeito e mútuo acordo comercial, assinam o presente.
+### CLÁUSULA 6ª - DA GARANTIA
+Como garantia das obrigações contratuais, o **LOCATÁRIO** oferece **{{ garantia }}**.
+
+### CLÁUSULA 7ª - DO SEGURO
+Fica estabelecido que a contratação de seguro contra incêndio/sinistro será: **{{ seguro_obrigatorio }}**.
+
+### CLÁUSULA 8ª - DAS OBRIGAÇÕES OPERACIONAIS
+O **LOCATÁRIO** compromete-se a manter licenças e autorizações administrativas necessárias ao exercício da atividade, respeitar normas de segurança e não realizar obras estruturais sem autorização expressa do **LOCADOR**.
+
+### CLÁUSULA 9ª - DA RENOVAÇÃO
+As partes ajustam, para fins de renovação, a seguinte condição específica: **{{ clausula_renovacao }}**.
+
+### CLÁUSULA 10ª - DA RESCISÃO E PENALIDADES
+Em caso de rescisão antecipada imotivada ou descumprimento contratual, será aplicada a penalidade descrita em **{{ multa }}**, sem prejuízo das perdas e danos eventualmente apuradas.
+
+### CLÁUSULA 11ª - DO FORO
+Fica eleito o foro da comarca de **{{ foro }}** para dirimir conflitos decorrentes deste instrumento, com renúncia de qualquer outro, por mais privilegiado que seja.
+
+E por estarem em pleno acordo, assinam o presente contrato em 02 (duas) vias de igual teor e forma.
 
 <br/>
 <br/>
 <br/>
 
 ___________________________________________________
-**LOCADOR**
+**{{ locador_dados_completos }}**
 
 <br/>
 <br/>
 <br/>
 
 ___________________________________________________
-**LOCATÁRIO**
+**{{ locatario_dados_completos }}**
 `,
 
-    proposta_compra: `
+  proposta_compra: `
 # PROPOSTA FORMAL VINCULANTE DE COMPRA DE IMÓVEL
 
 **DATA DE EMISSÃO DA PROPOSTA:** **{{ data_emissao }}**
@@ -190,7 +244,7 @@ _____________________________________________
 **Assinatura do Proponente**
 `,
 
-    autorizacao_venda: `
+  autorizacao_venda: `
 # CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE CORRETAGEM E AUTORIZAÇÃO DE VENDA
 
 **OUTORGANTE (PROPRIETÁRIO):** **{{ proprietario_nome }}**, pessoa física ou jurídica inscrita no CPF/CNPJ **{{ proprietario_cpf_cnpj }}**, com domicílio/sede administrativo localizado em **{{ proprietario_endereco }}**.
@@ -229,7 +283,7 @@ _____________________________________________
 **Outorgada (Imobiliária/Corretor)**
 `,
 
-    recibo_sinal: `
+  recibo_sinal: `
 # RECIBO OFICIAL DE SINAL E PRINCÍPIO DE PAGAMENTO E ARRAS INSTITUÍDAS
 
 EU, **{{ recebedor_nome }}**, regularmente inscrito e portador do CPF/CNPJ nº **{{ recebedor_cpf_cnpj }}**, DECLARO para todos os fins de direito e comprovação mercantil e financeira que, espontânea e validamente, **RECEBI MÚTUO E QUITAÇÃO** oriundo de **{{ pagador_nome }}**, portador(a) legal do CPF nº **{{ pagador_cpf }}**, o volume de fluxo e a exata quantia pecuniária descrita na ordem abaixo:
@@ -262,7 +316,7 @@ _____________________________________________
 **Assinatura Legítima de Recebimento de Valores Supracitados**
 `,
 
-    termo_vistoria: `
+  termo_vistoria: `
 # LAUDO PRELIMINAR E TERMO DE VISTORIA IMOBILIÁRIA CAUTELAR
 
 **Dados Descritivos do Imóvel Em Vistoria:** **{{ imovel_endereco }}**
@@ -307,7 +361,7 @@ _____________________________________________
 **Inquilino Plenamente Ciente das Avaliações Declaradas**
 `,
 
-    admin_imobiliaria: `
+  admin_imobiliaria: `
 # CONTRATO GERAL DE PRESTAÇÃO DE SERVIÇOS TÉCNICOS E ADMINISTRAÇÃO EXTRAJUDICIAL DA PAUTA IMOBILIÁRIA
 
 Este instrumento particular baliza acordos corporativos e civis plenos garantidos entre os subscritos:
@@ -356,20 +410,165 @@ _____________________________________________
 
 _____________________________________________
 **Diretoria Legal Administradora / Representante Expresso Procurador Preposto**
-`
+`,
 };
 
-export function generateDocumentMarkdown(templateId: string, data: Record<string, any>): string {
-    const template = templatesRegistry[templateId];
+const EMPTY_FIELD_FALLBACK = "_____________________";
 
-    if (!template) {
-        return "# Error\nTemplate não encontrado.";
+const enumLabelsByField: Record<string, Record<string, string>> = {
+  vendedor_estado_civil: {
+    solteiro: "solteiro(a)",
+    casado: "casado(a)",
+    divorciado: "divorciado(a)",
+    viuvo: "viuvo(a)",
+  },
+  comprador_estado_civil: {
+    solteiro: "solteiro(a)",
+    casado: "casado(a)",
+    divorciado: "divorciado(a)",
+    viuvo: "viuvo(a)",
+  },
+  locador_estado_civil: {
+    solteiro: "solteiro(a)",
+    casado: "casado(a)",
+    divorciado: "divorciado(a)",
+    pj: "pessoa juridica",
+  },
+  locatario_estado_civil: {
+    solteiro: "solteiro(a)",
+    casado: "casado(a)",
+    divorciado: "divorciado(a)",
+  },
+  vendedor_regime_bens: {
+    na: "nao aplicavel",
+    parcial: "comunhao parcial",
+    universal: "comunhao universal",
+    separacao: "separacao total",
+  },
+  comprador_regime_bens: {
+    na: "nao aplicavel",
+    parcial: "comunhao parcial",
+    universal: "comunhao universal",
+    separacao: "separacao total",
+  },
+  imovel_tipo: {
+    apartamento: "apartamento",
+    casa: "casa",
+    condominio: "casa em condominio",
+    terreno: "terreno",
+    sala: "sala comercial",
+    loja: "loja",
+    galpao: "galpao industrial",
+  },
+  imovel_finalidade: {
+    residencial: "residencial",
+  },
+  forma_pagamento: {
+    avista: "a vista",
+    financiamento: "financiamento bancario",
+    parcelado: "parcelamento direto",
+  },
+  resp_itbi: {
+    comprador: "comprador",
+    vendedor: "vendedor",
+  },
+  indice_reajuste: {
+    igpm: "IGP-M",
+    ipca: "IPCA",
+    inpc: "INPC",
+  },
+  tipo_garantia: {
+    fiador: "fiador",
+    caucao: "caucao em dinheiro",
+    seguro: "seguro fianca",
+    nenhuma: "sem garantia",
+  },
+  garantia: {
+    fiadorpj: "fiador PJ",
+    fiadorpf: "fiador PF",
+    segurobanco: "seguro fianca bancario",
+    caucao: "caucao",
+  },
+  seguro_obrigatorio: {
+    sim: "sim, a cargo do locatario",
+    nao: "nao",
+  },
+};
+
+const moneyFields = new Set([
+  "valor_total",
+  "valor_sinal",
+  "valor_aluguel",
+  "valor_ofertado",
+  "valor_venda",
+  "valor_pago",
+]);
+
+function isEmptyValue(value: string | number | null | undefined): boolean {
+  if (value === null || value === undefined) {
+    return true;
+  }
+  if (typeof value === "string") {
+    return value.trim() === "";
+  }
+  return false;
+}
+
+function parseNumericValue(raw: string | number): number | null {
+  if (typeof raw === "number") {
+    return Number.isFinite(raw) ? raw : null;
+  }
+
+  const cleaned = raw.replace(/[^\d,.-]/g, "").trim();
+  if (!cleaned) {
+    return null;
+  }
+
+  const normalized = cleaned.includes(",")
+    ? cleaned.replace(/\./g, "").replace(",", ".")
+    : cleaned;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatValueByField(
+  key: string,
+  value: string | number | null | undefined,
+): string {
+  if (isEmptyValue(value)) {
+    return EMPTY_FIELD_FALLBACK;
+  }
+
+  const rawValue = String(value).trim();
+  const enumField = enumLabelsByField[key];
+  if (enumField && enumField[rawValue]) {
+    return enumField[rawValue];
+  }
+
+  if (moneyFields.has(key)) {
+    const numeric = parseNumericValue(value as string | number);
+    if (numeric !== null) {
+      return numeric.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
     }
+  }
 
-    // Replace keys using regex (Ex: {{ campo_nome }})
-    return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key) => {
-        // Find the key in formData, if not found or empty, display a placeholder line for manual insertion
-        const value = data[key];
-        return value ? String(value) : "_____________________";
-    });
+  return rawValue;
+}
+
+export function generateDocumentMarkdown(
+  templateId: string,
+  data: Record<string, string | number | null | undefined>,
+): string {
+  const template = templatesRegistry[templateId];
+
+  if (!template) {
+    return "# Error\nTemplate não encontrado.";
+  }
+
+  return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key) =>
+    formatValueByField(key, data[key]),
+  );
 }

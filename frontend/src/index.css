@@ -1,78 +1,180 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-  }
+:root {
+  --color-canvas: #ECEFF3;
+  --color-surface: #FFFFFF;
+  --color-surface-subtle: #F7F8FB;
+  --color-border: #D7DDE8;
+  --color-text-primary: #172B4D;
+  --color-text-secondary: #44546F;
+  --color-text-tertiary: #6B778C;
+  --color-brand: #0052CC;
+  --color-brand-hover: #0747A6;
+  --color-brand-soft: #E9F2FF;
+  --radius-control: 10px;
+  --radius-card: 12px;
 }
 
 @layer base {
-  * {
-    border-color: hsl(var(--border));
+  html,
+  body,
+  #root {
+    min-height: 100%;
   }
 
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--color-canvas);
+    color: var(--color-text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  ::selection {
+    background: rgba(0, 82, 204, 0.22);
+  }
+}
+
+@layer components {
+  .page-shell {
+    @apply p-4 sm:p-6 lg:p-7 w-full;
+  }
+
+  .surface-card {
+    @apply bg-white border border-base;
+    border-radius: var(--radius-card);
+  }
+
+  .surface-subtle {
+    @apply bg-white/85 backdrop-blur border border-base;
+  }
+
+  .input-base {
+    @apply w-full h-10 px-3 bg-white border border-base text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all;
+    border-radius: var(--radius-control);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 h-10 bg-blue-600 hover:bg-blue-700 border border-blue-600 text-white text-sm font-semibold px-4 transition-all active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+    border-radius: var(--radius-control);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 h-10 text-text-secondary hover:text-text-primary bg-white border border-base text-sm font-semibold px-4 transition-colors;
+    border-radius: var(--radius-control);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 h-10 text-text-secondary hover:text-text-primary text-sm font-medium px-3 hover:bg-black/5 transition-colors;
+    border-radius: var(--radius-control);
+  }
+
+  .btn-icon {
+    @apply inline-flex items-center justify-center w-9 h-9 border border-base bg-white text-text-tertiary hover:text-text-secondary hover:bg-slate-50 transition-colors;
+    border-radius: var(--radius-control);
+  }
+
+  .btn-segment {
+    @apply h-8 px-3 text-xs font-semibold text-text-secondary border border-transparent hover:text-text-primary hover:bg-white/80 transition-colors;
+    border-radius: 8px;
+  }
+
+  .btn-segment-active {
+    @apply bg-[#1F2937] text-white;
+  }
+
+  .btn-chip {
+    @apply inline-flex items-center h-7 px-2.5 text-xs font-semibold border border-base bg-white text-text-secondary hover:text-text-primary hover:bg-slate-50 transition-colors;
+    border-radius: 8px;
+  }
+
+  .btn-row {
+    @apply w-full text-left border border-base bg-white px-3 py-2 hover:border-blue-300 hover:bg-blue-50/40 transition-colors;
+    border-radius: var(--radius-control);
+  }
+
+  .pill-soft {
+    @apply inline-flex items-center h-7 px-2.5 border border-base bg-white text-text-secondary text-xs font-semibold;
+    border-radius: 8px;
+  }
+
+  .panel-head {
+    @apply border-b border-base;
+    background:
+      linear-gradient(135deg, rgba(0, 82, 204, 0.03) 0%, rgba(0, 82, 204, 0) 46%),
+      linear-gradient(180deg, #FFFFFF 0%, #FAFBFE 100%);
+  }
+
+  .subtle-grid {
+    background-image:
+      linear-gradient(to right, rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+}
+
+@layer utilities {
+  .bg-canvas {
+    background-color: var(--color-canvas);
+  }
+
+  .bg-surface {
+    background-color: var(--color-surface);
+  }
+
+  .border-base {
+    border-color: var(--color-border);
+  }
+
+  .text-text-primary {
+    color: var(--color-text-primary);
+  }
+
+  .text-text-secondary {
+    color: var(--color-text-secondary);
+  }
+
+  .text-text-tertiary {
+    color: var(--color-text-tertiary);
+  }
+
+  .ring-1-soft {
+    box-shadow: none;
+  }
+
+  .shadow-soft {
+    box-shadow: none;
+  }
+
+  .shadow-low {
+    box-shadow: none;
+  }
+
+  .shadow-mid {
+    box-shadow: none;
+  }
+
+  [class*="shadow"] {
+    box-shadow: none !important;
+  }
+
+  [class*="drop-shadow"] {
+    filter: none !important;
   }
 }

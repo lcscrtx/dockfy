@@ -5,51 +5,41 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
+    fontFamily: {
+      sans: ['Inter', 'sans-serif'],
+    },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+        blue: {
+          50: '#E9F2FF',
+          100: '#CCE0FF',
+          200: '#A6C8FF',
+          300: '#7AA7FF',
+          400: '#4C84F0',
+          500: '#1E67D5',
+          600: '#0052CC',
+          700: '#0747A6',
+          800: '#09326C',
+          900: '#091E42',
         },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+        brand: {
+          50: '#E9F2FF',
+          100: '#CCE0FF',
+          200: '#A6C8FF',
+          300: '#7AA7FF',
+          400: '#4C84F0',
+          500: '#1E67D5',
+          600: '#0052CC',
+          700: '#0747A6',
+          800: '#09326C',
+          900: '#091E42',
         },
       },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+      boxShadow: {
+        low: '0 1px 2px rgba(9, 30, 66, 0.08), 0 0 0 1px rgba(9, 30, 66, 0.06)',
+        mid: '0 8px 24px rgba(9, 30, 66, 0.12), 0 0 0 1px rgba(9, 30, 66, 0.08)',
       },
     },
   },
-  plugins: [
-    require('@tailwindcss/typography'),
-  ],
+  plugins: [],
 }
-

@@ -1,141 +1,274 @@
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useMemo, useState, type ReactNode } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import {
-    FileText,
-    LayoutDashboard,
-    Kanban,
-    FolderOpen,
-    UserCircle2,
-    Home,
-    LogOut,
-    Plus,
-    ChevronLeft,
-    Menu,
-} from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+  Home,
+  LayoutGrid,
+  FileText,
+  BookText,
+  Link2,
+  Users,
+  Building2,
+  BarChart3,
+  Search,
+  Bell,
+  LogOut,
+  User,
+  UserRound,
+  Menu,
+  X,
+  ChevronRight,
+  Settings,
+  Sparkles,
+} from "lucide-react";
 
-const navItems = [
-    { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/board', icon: Kanban, label: 'Board' },
-    { to: '/templates', icon: FolderOpen, label: 'Templates' },
-    { to: '/pessoas', icon: UserCircle2, label: 'Pessoas' },
-    { to: '/imoveis', icon: Home, label: 'Imóveis' },
+const navGroups = [
+  {
+    title: "Visão Geral",
+    items: [
+      { to: "/", label: "Dashboard", icon: Home },
+      { to: "/board", label: "Board", icon: LayoutGrid },
+    ],
+  },
+  {
+    title: "Documentos",
+    items: [
+      { to: "/templates", label: "Templates", icon: FileText },
+      { to: "/meus-modelos", label: "Meus Modelos", icon: Link2 },
+      { to: "/clausulas", label: "Cláusulas", icon: BookText },
+      { to: "/pessoas", label: "Pessoas", icon: Users },
+      { to: "/imoveis", label: "Imóveis", icon: Building2 },
+    ],
+  },
+  {
+    title: "Financeiro",
+    items: [{ to: "/financeiro", label: "Recebimentos", icon: BarChart3 }],
+  },
+  {
+    title: "Conta",
+    items: [
+      { to: "/elia-beta", label: "elia (beta)", icon: Sparkles },
+      { to: "/perfil", label: "Meu Perfil", icon: UserRound },
+    ],
+  },
 ];
 
-export function AppLayout({ children }: { children: ReactNode }) {
-    const { user, signOut } = useAuth();
-    const navigate = useNavigate();
-    const [collapsed, setCollapsed] = useState(false);
+interface AppLayoutProps {
+  children: ReactNode;
+}
 
-    const initials = user?.email?.slice(0, 2).toUpperCase() || 'U';
+function getRouteMeta(pathname: string) {
+  if (pathname === "/") return { section: "Overview", title: "Dashboard" };
+  if (pathname === "/board") return { section: "Overview", title: "Board" };
+  if (pathname === "/templates")
+    return { section: "Documentos", title: "Templates" };
+  if (pathname === "/meus-modelos")
+    return { section: "Documentos", title: "Meus Modelos" };
+  if (pathname === "/clausulas")
+    return { section: "Documentos", title: "Cláusulas" };
+  if (pathname === "/pessoas")
+    return { section: "Cadastros", title: "Pessoas" };
+  if (pathname === "/imoveis")
+    return { section: "Cadastros", title: "Imóveis" };
+  if (pathname === "/financeiro")
+    return { section: "Financeiro", title: "Recebimentos" };
+  if (pathname === "/perfil")
+    return { section: "Conta", title: "Meu Perfil" };
+  if (pathname === "/elia-beta")
+    return { section: "Assistente", title: "elia (beta)" };
+  if (pathname.startsWith("/wizard"))
+    return { section: "Documentos", title: "Wizard" };
+  if (pathname.startsWith("/document/"))
+    return { section: "Documentos", title: "Detalhes" };
+  return { section: "Workspace", title: "Elia" };
+}
 
-    const handleLogout = async () => {
-        await signOut();
-        navigate('/login');
-    };
+export function AppLayout({ children }: AppLayoutProps) {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-    return (
-        <div className="min-h-screen bg-[#F8FAFC] flex">
-            {/* Sidebar */}
-            <aside
-                className={`fixed top-0 left-0 h-screen bg-white border-r border-slate-200 flex flex-col z-40 transition-all duration-300 ease-in-out ${collapsed ? 'w-[68px]' : 'w-[240px]'
-                    }`}
-            >
-                {/* Logo */}
-                <div className={`h-16 flex items-center border-b border-slate-100 px-4 ${collapsed ? 'justify-center' : 'justify-between'}`}>
-                    <div className="flex items-center gap-2.5 overflow-hidden">
-                        <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
-                            <FileText className="w-5 h-5 text-white" />
-                        </div>
-                        {!collapsed && (
-                            <span className="font-bold text-lg tracking-tight text-slate-900 whitespace-nowrap">
-                                Dockfy
-                            </span>
-                        )}
-                    </div>
-                    <button
-                        onClick={() => setCollapsed(!collapsed)}
-                        className={`text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-md hover:bg-slate-100 flex-shrink-0 ${collapsed ? 'hidden' : ''}`}
-                    >
-                        <ChevronLeft className="w-4 h-4" />
-                    </button>
-                </div>
+  const routeMeta = useMemo(
+    () => getRouteMeta(location.pathname),
+    [location.pathname],
+  );
 
-                {/* New Document CTA */}
-                <div className={`px-3 pt-5 pb-2 ${collapsed ? 'px-2' : ''}`}>
-                    <button
-                        onClick={() => navigate('/templates')}
-                        className={`w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg transition-all active:scale-[0.97] shadow-sm ${collapsed ? 'p-2.5' : 'px-4 py-2.5'
-                            }`}
-                        title="Novo Documento"
-                    >
-                        <Plus className="w-4 h-4 flex-shrink-0" />
-                        {!collapsed && <span>Novo Documento</span>}
-                    </button>
-                </div>
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/login");
+  };
 
-                {/* Nav Items */}
-                <nav className="flex-1 px-3 py-4 space-y-1">
-                    {navItems.map((item) => (
-                        <NavLink
-                            key={item.to}
-                            to={item.to}
-                            end={item.to === '/'}
-                            className={({ isActive }) =>
-                                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive
-                                    ? 'bg-slate-900 text-white shadow-sm'
-                                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                                } ${collapsed ? 'justify-center px-2.5' : ''}`
-                            }
-                            title={item.label}
-                        >
-                            <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
-                            {!collapsed && <span>{item.label}</span>}
-                        </NavLink>
+  const metadata = (user?.user_metadata ?? {}) as {
+    full_name?: string;
+    avatar_url?: string;
+  };
+
+  const displayName = metadata.full_name?.trim()
+    ? metadata.full_name.trim()
+    : user?.email
+    ? user.email
+        .split("@")[0]
+        .replace(/[._]/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+    : "Usuário";
+  const avatarUrl = metadata.avatar_url || "";
+
+  return (
+    <div className="relative min-h-screen bg-canvas text-text-primary">
+      {mobileNavOpen && (
+        <button
+          onClick={() => setMobileNavOpen(false)}
+          className="fixed inset-0 bg-black/30 z-30 lg:hidden"
+          aria-label="Fechar navegação"
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-[260px] bg-[#F1F3F7] border-r border-base flex flex-col transition-transform duration-200 lg:translate-x-0 ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+      >
+            <div className="h-16 px-4 flex items-center border-b border-base relative">
+              <img
+                src="/logo-elia.svg"
+                alt="elia"
+                className="w-[104px] h-auto max-w-full"
+              />
+              <button
+                onClick={() => setMobileNavOpen(false)}
+                className="lg:hidden btn-icon absolute right-3 top-1/2 -translate-y-1/2"
+                aria-label="Fechar menu"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="px-3 py-3 border-b border-base">
+              <div className="relative">
+                <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary"
+                />
+                <input
+                  type="text"
+                  placeholder="Search anything"
+                  className="input-base h-9 pl-9 pr-8 text-[13px] bg-white/90"
+                />
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-text-tertiary border border-base rounded px-1 py-0.5 bg-[var(--color-surface-subtle)]">
+                  ⌘ K
+                </span>
+              </div>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
+              {navGroups.map((group) => (
+                <div key={group.title}>
+                  <h3 className="text-[10px] font-semibold uppercase tracking-widest text-text-tertiary px-2 mb-2">
+                    {group.title}
+                  </h3>
+                  <div className="space-y-1">
+                    {group.items.map((item) => (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        end={item.to === "/"}
+                        onClick={() => setMobileNavOpen(false)}
+                        className={({ isActive }) => {
+                          const base =
+                            "h-9 rounded-[10px] px-2.5 flex items-center gap-2.5 text-[13px] font-medium border transition-all";
+                          return isActive
+                            ? `${base} bg-white text-text-primary border-[#D7DEEA] shadow-low`
+                            : `${base} border-transparent text-[#5F6D87] hover:text-text-primary hover:bg-white/75`;
+                        }}
+                      >
+                        <item.icon size={15} className="shrink-0" />
+                        {item.label}
+                      </NavLink>
                     ))}
-                </nav>
-
-                {/* User Section */}
-                <div className={`border-t border-slate-100 p-3 ${collapsed ? 'px-2' : ''}`}>
-                    <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
-                        <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-xs font-semibold text-slate-600 flex-shrink-0">
-                            {initials}
-                        </div>
-                        {!collapsed && (
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-slate-900 truncate">{user?.email}</p>
-                            </div>
-                        )}
-                        <button
-                            onClick={handleLogout}
-                            className={`text-slate-400 hover:text-slate-700 transition-colors p-1.5 rounded-md hover:bg-slate-100 flex-shrink-0 ${collapsed ? 'hidden' : ''}`}
-                            title="Sair"
-                        >
-                            <LogOut className="w-4 h-4" />
-                        </button>
-                    </div>
+                  </div>
                 </div>
+              ))}
+            </nav>
 
-                {/* Expand toggle when collapsed */}
-                {collapsed && (
-                    <div className="border-t border-slate-100 p-2">
-                        <button
-                            onClick={() => setCollapsed(false)}
-                            className="w-full flex items-center justify-center p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
-                        >
-                            <Menu className="w-4 h-4" />
-                        </button>
-                    </div>
+            <div className="p-3 border-t border-base">
+              <div className="rounded-[10px] border border-base bg-white p-2.5 flex items-center gap-2.5">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={displayName}
+                    className="w-8 h-8 rounded-full border border-[#D9E6FF] object-cover bg-[#EEF3FF]"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-[#EEF3FF] border border-[#D9E6FF] flex items-center justify-center text-[#2E4F8A]">
+                    <User size={16} />
+                  </div>
                 )}
-            </aside>
+                <div className="min-w-0">
+                  <p className="text-[12px] font-semibold text-text-primary truncate">
+                    {displayName}
+                  </p>
+                  <p className="text-[11px] text-text-tertiary truncate">{user?.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="btn-secondary mt-2 w-full h-9 text-[13px] shadow-none"
+              >
+                <LogOut size={14} />
+                Sair da conta
+              </button>
+            </div>
+      </aside>
 
-            {/* Main content */}
-            <main
-                className={`flex-1 h-screen overflow-auto transition-all duration-300 ease-in-out ${collapsed ? 'ml-[68px]' : 'ml-[240px]'
-                    }`}
+      <div className="min-h-screen bg-[#F8F9FB] lg:ml-[260px] flex flex-col">
+        <header className="fixed top-0 left-0 right-0 lg:left-[260px] h-14 sm:h-16 border-b border-base bg-[#F8F9FB]/95 backdrop-blur px-3 sm:px-5 lg:px-7 flex items-center justify-between z-20">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <button
+              onClick={() => setMobileNavOpen(true)}
+              className="lg:hidden btn-icon"
+              aria-label="Abrir menu"
             >
-                {children}
-            </main>
-        </div>
-    );
+              <Menu size={20} />
+            </button>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-xs sm:text-[13px] font-medium text-text-tertiary truncate">
+                {routeMeta.section}
+              </span>
+              <ChevronRight size={14} className="text-text-tertiary/80 shrink-0" />
+              <span className="text-xs sm:text-[13px] font-semibold text-text-primary truncate">
+                {routeMeta.title}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button className="btn-icon">
+              <Bell size={16} />
+            </button>
+            <button className="btn-icon">
+              <Settings size={16} />
+            </button>
+            <div className="hidden sm:flex items-center gap-2 rounded-[10px] border border-base bg-white px-2.5 py-1.5">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={displayName}
+                  className="w-6 h-6 rounded-full border border-[#D9E6FF] object-cover bg-[#EEF3FF]"
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-[#EEF3FF] border border-[#D9E6FF] flex items-center justify-center text-[#2E4F8A]">
+                  <User size={13} />
+                </div>
+              )}
+              <span className="text-[12px] font-semibold text-text-secondary max-w-[130px] truncate">
+                {displayName}
+              </span>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 pt-14 sm:pt-16">{children}</main>
+      </div>
+    </div>
+  );
 }
